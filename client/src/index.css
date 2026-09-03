@@ -1,0 +1,271 @@
+/* 안드로이드/윈도 폴백. 애플 기기는 SF Pro 가 먼저 잡힌다. */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    /* 한글 단어 중간 줄바꿈 금지 */
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+
+  html,
+  body {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
+  body {
+    @apply bg-white text-ink font-sans m-0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    min-height: 100dvh;
+  }
+
+  /* 한국어 제목은 두 줄로 갈릴 때 균형이 중요하다. keep-all 과 같이 쓴다. */
+  h1,
+  h2,
+  .balance {
+    text-wrap: balance;
+  }
+  p,
+  li,
+  .pretty {
+    text-wrap: pretty;
+  }
+
+  /* 숫자는 전부 폭 고정 */
+  .tabular,
+  [data-num] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 2px solid theme('colors.blue');
+    outline-offset: 3px;
+  }
+}
+
+/* ── 글래스 구조 ─────────────────────────────────────────── */
+.glass-root {
+  position: relative;
+  min-height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+}
+.glass-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+}
+.glass {
+  position: relative;
+  isolation: isolate;
+  background: transparent;
+  z-index: 1;
+}
+
+/* WebGL 불가, 저사양, reduced-transparency 폴백: CSS 글래스 */
+[data-glass-mode='css'] .glass {
+  background: rgba(255, 255, 255, 0.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  backdrop-filter: blur(20px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65), 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+[data-glass-mode='css'] .glass-prominent {
+  background: theme('colors.blue');
+  color: theme('colors.white');
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.glass-tint {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+}
+.glass > *:not(canvas):not(.glass-tint) {
+  position: relative;
+  z-index: 1;
+}
+/* 텍스트 노드는 z-index 를 못 받는다. 불투명 틴트 아래로 깔려서 안 보인다.
+   Glass 와 GlassButton 이 문자열 자식을 이 span 으로 감싼다. */
+.glass-btn-label,
+.glass-content {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+}
+
+/* ── 글래스 버튼 ─────────────────────────────────────────── */
+/* 정렬 규칙: 패널 콘텐츠는 왼쪽. 캡슐 CTA 라벨은 예외로 가운데. */
+.glass-btn {
+  text-align: center;
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 24px;
+  min-height: theme('minHeight.btn');
+  padding: 14px 22px;
+  color: theme('colors.ink');
+  letter-spacing: -0.01em;
+  transition: transform theme('transitionDuration.fast') theme('transitionTimingFunction.out');
+}
+.glass-btn-prominent {
+  color: theme('colors.white');
+}
+.glass-btn:active {
+  transform: scale(0.98);
+}
+/* disabled 에 opacity 를 쓰지 않는다. 텍스트가 항상 읽혀야 한다.
+   line(#E5E5E5) 바탕 + ink(#0A0A0A) 텍스트 = 대비 15.7:1. */
+.glass-btn[disabled] {
+  cursor: not-allowed;
+  background: theme('colors.line');
+  color: theme('colors.ink');
+  border: 1px solid theme('colors.line');
+}
+
+/* ── 어드민 그리드: 1280 기준, 768 미만 1열 ────────────────── */
+.admin-grid {
+  display: grid;
+  gap: theme('spacing.md');
+  align-content: center;
+  justify-content: center;
+  grid-template-columns: minmax(280px, 420px);
+}
+@media (min-width: theme('screens.md')) {
+  .admin-grid {
+    grid-template-columns: minmax(320px, 520px) minmax(280px, 380px);
+  }
+}
+
+/* ── 모션: transform/opacity 만 ───────────────────────────── */
+/* press: 빠르게 들어가고(120ms) 부드럽게 나온다(260ms). transform 만 건드린다. */
+.press {
+  transition: transform theme('transitionDuration.out') theme('transitionTimingFunction.out');
+}
+.press:active {
+  transform: scale(theme('scale.press'));
+  transition-duration: theme('transitionDuration.fast');
+}
+.press-option:active {
+  transform: scale(theme('scale.optionPress'));
+}
+
+/* 패널 내용 전환: 크로스페이드 + 6px 상승. 레이아웃 속성은 건드리지 않는다. */
+@keyframes glass-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.enter {
+  animation: glass-enter theme('transitionDuration.enter') theme('transitionTimingFunction.out') both;
+}
+
+/* QR: 흰 플레이트가 8px 상승하며 페이드, 캔버스는 100ms 뒤에 */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.plate-in {
+  animation: rise-in theme('transitionDuration.base') theme('transitionTimingFunction.out') both;
+}
+.qr-in {
+  animation: rise-in theme('transitionDuration.enter') theme('transitionTimingFunction.out') both;
+  animation-delay: theme('transitionDelay.qr');
+}
+
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(var(--bar, 0));
+  }
+}
+.bar-fill {
+  transform-origin: left center;
+  transform: scaleX(var(--bar, 0));
+  animation: bar-grow theme('transitionDuration.slow') theme('transitionTimingFunction.out') both;
+  animation-delay: var(--bar-delay, 0ms);
+  transition: filter theme('transitionDuration.fast') theme('transitionTimingFunction.standard');
+}
+/* 1등 확정 시 아주 미세한 강조. 오버슈트 없음. */
+.bar-lead {
+  filter: brightness(theme('brightness.lead'));
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.82);
+  }
+}
+.live-dot {
+  animation: live-pulse 1.8s theme('transitionTimingFunction.standard') infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  [data-glass-mode='css'] .glass {
+    background: rgba(255, 255, 255, 0.92);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :focus-visible {
+    outline-width: 3px;
+  }
+  [data-glass-mode='css'] .glass {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: theme('colors.ink');
+  }
+}
