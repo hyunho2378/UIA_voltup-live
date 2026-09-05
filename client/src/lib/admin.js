@@ -13,13 +13,18 @@ export const adminCheck = () => fetch('/api/admin-session', { credentials: 'incl
 
 export const adminLogout = () => fetch('/api/admin-session', { method: 'DELETE', credentials: 'include' });
 
-export const control = (action, questionId) =>
+const post = (body) =>
   fetch('/api/session-control', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, questionId }),
+    body: JSON.stringify(body),
     credentials: 'include',
   }).then(async (r) => {
     if (!r.ok) throw new Error(String(r.status));
     return r.json();
   });
+
+export const control = (action, questionId) => post({ action, questionId });
+
+// scope: 'question' | 'all'. votes 삭제는 서버 secret 키 경로에서만 된다.
+export const resetVotes = (scope, questionId) => post({ action: 'reset', scope, questionId });

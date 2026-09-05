@@ -14,7 +14,7 @@ React 18 + Vite + Tailwind(tokens override) + Supabase. 프론트와 serverless 
 
 ## DevControlPanel (개발 전용)
 
-`npm run dev` 일 때만 우하단에 뜨는 솔리드 다크 패널. 현재 세션 상태를 보여주고 투표 열기/닫기, 결과 공개/숨기기, 다음 질문, 대기로, 백업을 누를 수 있다.
+`npm run dev` 일 때만 우하단에 뜨는 솔리드 다크 패널. 현재 세션 상태를 보여주고 투표 열기/닫기, 결과 공개/숨기기, 다음 질문, 대기로, 이 질문 초기화를 누를 수 있다.
 
 - 어드민 인증을 우회한다. **`import.meta.env.DEV` 게이트 안에서만 마운트되고 프로덕션 번들에는 문자열조차 남지 않는다.**
 - 쓰기는 `POST /__dev__/session-control` 로 간다. 이 엔드포인트는 `vite.config.js` 의 `apply:'serve'` 플러그인이라 dev 서버에만 존재한다.
@@ -40,7 +40,7 @@ React 18 + Vite + Tailwind(tokens override) + Supabase. 프론트와 serverless 
 
 ## 배포 (Vercel 하나)
 
-`/vote` `/screen` `/admin` 은 한 앱의 세 라우트다. Vercel 이 프론트(Vite build)와 `api/` serverless 를 한 번에 배포한다. 다른 호스팅은 필요 없다. 백업(Slido)만 남의 링크다.
+`/vote` `/screen` `/admin` 은 한 앱의 세 라우트다. Vercel 이 프론트(Vite build)와 `api/` serverless 를 한 번에 배포한다. 다른 호스팅은 필요 없다.
 
 | 항목 | 값 |
 |---|---|
@@ -57,7 +57,6 @@ React 18 + Vite + Tailwind(tokens override) + Supabase. 프론트와 serverless 
 | `VITE_SUPABASE_URL` | Supabase Project URL | 브라우저 |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_...` | 브라우저 (RLS 가 방어선) |
 | `VITE_VOTE_SHORT_URL` | 배포 URL + `/vote` | 브라우저 |
-| `VITE_BACKUP_URL` | Slido 등 백업 주소 | 브라우저 |
 | `SUPABASE_URL` | `VITE_SUPABASE_URL` 과 같은 값 | 서버 전용 |
 | `SUPABASE_SECRET_KEY` | `sb_secret_...` | **노출 금지** |
 | `ADMIN_PASSCODE` | 행사용 패스코드 | **노출 금지** |

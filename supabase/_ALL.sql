@@ -1,5 +1,5 @@
 -- voltup-live · _ALL.sql
--- 0001 → 0002 → 0003 → 0004 → 0005 → seed 를 이어붙인 단일 파일.
+-- 0001 → 0002 → 0003 → 0004 → 0005 → seed → 0006 을 이어붙인 단일 파일.
 -- Supabase 대시보드 SQL Editor 에 전체를 붙여넣고 한 번에 Run.
 -- 개별 파일을 고치면 이 파일을 다시 만든다(정본은 migrations/ 와 seed.sql).
 
@@ -328,3 +328,14 @@ insert into public.options (id, question_id, order_no, label) values
   ('22222222-0000-0000-0000-000000000006','11111111-0000-0000-0000-000000000002',2,'글로벌'),
   ('22222222-0000-0000-0000-000000000007','11111111-0000-0000-0000-000000000002',3,'개인')
 on conflict (id) do nothing;
+
+-- ===== 0006_remove_backup =====
+-- voltup-live · 0006 백업 전환 기능 제거
+-- 백업(Slido 전환) 경로를 앱에서 없앴다. status 에서 'backup' 을 되돌린다.
+-- 비파괴: 컬럼·행·투표를 지우지 않는다. 남아 있는 'backup' 값만 'standby' 로 정리하고 CHECK 를 축소한다.
+
+update public.sessions set status = 'standby' where status = 'backup';
+
+alter table public.sessions drop constraint if exists sessions_status_check;
+alter table public.sessions add constraint sessions_status_check
+  check (status in ('standby','live','ended'));

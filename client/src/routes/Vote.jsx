@@ -136,16 +136,24 @@ export default function Vote() {
     fetchQuestions().then((qs) => setTotal(qs.length));
   }, []);
 
+  const qid = session?.active_question_id;
+
   useEffect(() => {
-    if (!isSupabaseConfigured || !session?.active_question_id) return;
-    fetchQuestion(session.active_question_id).then((q) => {
-      setQuestion(q);
-      setChoice(null);
-      setText('');
-      setVoted(false);
-      setNotice('');
-    });
-  }, [session?.active_question_id]);
+    if (!isSupabaseConfigured || !qid) return undefined;
+    // 초기화는 fetch 결과를 기다리지 않는다. 기다리면 새 질문 위에 이전 질문의 "투표했어요"가 남는다.
+    setQuestion(null);
+    setChoice(null);
+    setText('');
+    setVoted(false);
+    setNotice('');
+
+    // 이전 질문의 fetch 가 뒤늦게 도착해 덮어쓰는 걸 막는다.
+    let alive = true;
+    fetchQuestion(qid).then((q) => alive && setQuestion(q));
+    return () => {
+      alive = false;
+    };
+  }, [qid]);
 
   const isText = question?.type === 'text';
   const ready = isText ? text.trim().length > 0 : Boolean(choice);

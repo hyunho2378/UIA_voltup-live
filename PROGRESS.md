@@ -23,21 +23,31 @@
 - 어드민 인증·세션 제어 serverless 구현: client/api/{admin-login,admin-session,session-control}.js + _lib/auth.js(HMAC httpOnly 쿠키), RequireAdmin 실검증, /admin 버튼 전면 배선, /screen standby QR
 - 방어 코드 작성: 0004 broadcast 쓰로틀(질문당 250ms 병합 + flush_results), client eventsPerSecond 10, close_voting 시 최종 집계 확정 발사
 - sessions 구독을 SessionProvider 하나로 통합. 라우트별 중복 채널 3개 → 1개
-- /offline 자동 전환(연결 8초 이상 끊기면 전환, 복구 시 자동 복귀) + 백업 전환 경로(0005 status='backup', /screen 백업 안내, 어드민 토글)
+- /offline 자동 전환(연결 8초 이상 끊기면 전환, 복구 시 자동 복귀)
 - 부하 테스트 하네스: client/loadtest/{vote-storm.mjs,run.sh,README.md}
+- 결과 정합성 수정: 질문 전환 시 /screen 결과 즉시 비움 + broadcast/fetch 에 question_id 가드. 이전 질문 막대가 남던 원인 제거
+- 투표 초기화 추가(어드민 '이 질문 초기화' 즉시 / '전체 초기화' 2단 확인). 서버 secret 키 경로에서 votes 삭제 후 flush_results 로 화면 0 확정
+- 외부 도구 전환 경로 제거(0006). status CHECK 는 다시 (standby, live, ended)
 
 ## 진행 중
 - **배포 준비 완료, 실키 미투입.** 리포는 커밋 가능 상태. 실키는 client/.env 에만 있고 커밋되지 않는다.
   다음: GitHub push → Vercel import(Root=client) → 환경변수 8개 투입 → Redeploy → 스모크 → 양방향 라이브 검증.
 - Vercel 환경변수 입력 대기(사람 몫): ADMIN_PASSCODE, ADMIN_COOKIE_SECRET, SUPABASE_URL, SUPABASE_SECRET_KEY.
 - /preview 와 DevControlPanel 은 DEV 전용이라 별도 제거 작업이 없다. RLS 를 푸는 dev 정책(0006)은 만들지 않았으므로 행사 전 되돌릴 DB 변경도 없다.
-- 마이그레이션 0001~0005 적용 완료(2026-09-02). flush_results 204, status='backup' 204 실측 확인.
+- 마이그레이션 0001~0005 적용 완료(2026-09-02). flush_results 204 실측 확인.
+- **0006_remove_backup.sql 은 사람이 Supabase SQL Editor 에서 Run 해야 한다(미적용).** 비파괴 — status 값 정리 + CHECK 축소만.
+- 결과 정합성 실측(2026-09-05, 로컬 dev + 프로덕션 DB): 질문 전환 중 218 샘플에서 "다른 질문 막대" 0건.
+  다만 구버전으로 되돌려 같은 시퀀스를 돌려도 0건이었다. set_question 이 results_visible=false 로 내리기 때문에
+  fetch 대기 구간이 가려진다. 코드상 결함(state 미초기화 + question_id 가드 없음)은 실재하지만
+  화면에 보이는 증상의 원인은 아니었다. 실제 원인은 남아 있던 votes 7행(아래).
+- 리허설 잔여 투표 실측: 검증 시작 시점 프로덕션에 votes 7행(Q1 3 / Q2 2 / Q3 2)이 남아 있었다.
+  "투표 안 했는데 결과가 나온다"의 실제 원인. 초기화 기능으로 제거했고 검증 후 votes 0 / standby 로 복구.
 - Supabase 스키마·시드 적용 완료 확인(2026-09-02). sessions/questions/options/votes, RLS, get_results, 중복 차단 전부 실측 통과.
 
 ## 다음 작업 (순서)
-1. VITE_VOTE_SHORT_URL, VITE_BACKUP_URL 확정 후 .env 와 Vercel 에 입력. 실기기 QR 스캔 1회.
+1. VITE_VOTE_SHORT_URL 확정 후 .env 와 Vercel 에 입력. 실기기 QR 스캔 1회.
 2. 배포 후 전 화면 재검증, 반응형 전 구간, 금지 항목 grep.
-3. 리허설 3회, 장애 대체안(short URL, offline 화면, 백업 전환) 점검.
+3. 리허설 3회, 장애 대체안(short URL, offline 화면) 점검.
 4. 배포 실주소로 부하 스윕 1회 재측정(로컬 단일 IP 측정과 다를 수 있음).
 
 ## 부하 실측 (2026-09-02)
@@ -97,14 +107,14 @@
 - `pill` 을 9999 로 두지 않는다. 글래스 셰이더가 `cornerRadius` 를 클램프 없이 넘긴다(GlassRenderer.ts:262).
 - tailwind `borderRadius` 는 `tokens.radius` 를 그대로 펼친다. 키와 값이 1:1 로 일치하는지가 검증 항목이다.
 
-## /preview 갤러리에 담긴 상태 (20)
+## /preview 갤러리에 담긴 상태 (18)
 
-- 청중 /vote (8): 대기 / 투표 미선택 / 투표 선택됨 / 완료 / 이미 투표함 / 지금 투표 불가 / 주관식 입력 / 주관식 제출완료
-- 대형화면 /screen (6): 대기 QR / 결과 객관식 박빙 / 결과 객관식 압도적 1등 / 결과 주관식 빈도 / 결과 미공개 질문만 / 백업 안내
+- 청중 /vote (7): 대기 / 투표 미선택 / 투표 선택됨 / 완료 / 이미 투표함 / 주관식 입력 / 주관식 제출완료
+- 대형화면 /screen (5): 대기 QR / 결과 객관식 박빙 / 결과 객관식 압도적 1등 / 결과 주관식 빈도 / 결과 미공개 질문만
 - 어드민 (4): 로그인 / 제어 연결됨 / 제어 다시 연결 중 / 제어 끊김
 - 랜딩 (2): 진행 중 / 종료
 
-재질은 CSS 글래스로 고정한다. 패널 20개에 WebGL 컨텍스트를 각각 열면 브라우저 한도(약 16)를 넘겨 오래된 것부터 죽는다.
+재질은 CSS 글래스로 고정한다. 패널 18개에 WebGL 컨텍스트를 각각 열면 브라우저 한도(약 16)를 넘겨 오래된 것부터 죽는다.
 실제 WebGL 재질은 /vote /screen /admin 실 라우트에서 본다.
 
 /preview 는 넓은 화면에서 보는 도구다. 프레임이 축소 고정이라 좁은 폭에서는 리플로우하지 않는다.
@@ -114,7 +124,6 @@
 - 루트에 skills-main(Emil apple-design/improve-animations), make-interfaces-feel-better-main 이 없다(zip 도 없음). 모션 작업은 프롬프트에 적힌 항목과 LiquidGlassCheatsheet 기준으로만 반영했다.
 - 배경은 코드 생성 ambient(webp). 색을 바꾸려면 tokens.ambient 를 고치고 `npm run bg` 를 다시 돌린다. 사진은 쓰지 않는다.
 - 로컬 client/.env 의 ADMIN_PASSCODE 와 ADMIN_COOKIE_SECRET 은 개발용 임시값이다. 문서에 값을 적지 않는다. 배포값은 Vercel 환경변수로 따로 넣는다.
-- VITE_BACKUP_URL 미정(Slido 등 백업 주소). 비어 있으면 /screen 백업 화면이 QR 없이 텍스트만 띄운다.
 - 부하 테스트는 별도 테스트 Supabase 프로젝트가 없어 프로덕션 프로젝트를 쓴다. 리허설 시간대에만 돌린다. 끝나면 투표 삭제와 standby 복구를 반드시 확인한다.
 - `vercel dev` 는 Vercel 로그인이 필요하다(현재 로그아웃 상태). 로그인 후 `npm run dev:api`.
 - SESSION_HEADER.md가 참조하는 .claude/skills/fullstack-product-setup/SKILL.md 미존재.

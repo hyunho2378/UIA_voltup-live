@@ -61,7 +61,6 @@ export default function Preview() {
   const TOTAL = sampleQuestions.length;
   const { results: mockResults, counts: mockCounts } = buildMocks();
   const VOTE_URL = 'https://voltup.live/vote';
-  const BACKUP_URL = 'https://app.sli.do/event/voltup';
   const SCREEN_QR = Math.round(1080 * 0.38);
   const MOCK_SESSION = {
     active_question_id: 's2',
@@ -108,9 +107,6 @@ export default function Preview() {
           </Frame>
           <Frame label="결과 미공개 / 질문만" w={1920} h={1080} scale={0.42}>
             <ScreenView question={q2} results={mockResults.landslide} resultsVisible={false} />
-          </Frame>
-          <Frame label="백업 안내" w={1920} h={1080} scale={0.42}>
-            <ScreenView backup backupUrl={BACKUP_URL} qrSize={SCREEN_QR} />
           </Frame>
         </div>
 

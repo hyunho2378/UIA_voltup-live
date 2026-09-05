@@ -49,24 +49,28 @@ export default function DevControlPanel() {
     fetchQuestions().then(setQuestions).catch(() => {});
   }, []);
 
-  async function run(action, questionId) {
+  async function post(payload) {
     setBusy(true);
     setError('');
     try {
       const r = await fetch('/__dev__/session-control', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, questionId }),
+        body: JSON.stringify(payload),
       });
       const body = await r.json();
       if (!r.ok) throw new Error(body?.error || String(r.status));
-      setSession(body);
+      // 세션 제어는 sessions 행을, 초기화는 {ok:true} 를 돌려준다. 행일 때만 반영한다.
+      if (body?.id) setSession(body);
+      else if (body?.session) setSession(body.session);
     } catch (e) {
       setError(e.message);
     } finally {
       setBusy(false);
     }
   }
+
+  const run = (action, questionId) => post({ action, questionId });
 
   const open = Boolean(session?.voting_open);
   const shown = Boolean(session?.results_visible);
@@ -101,7 +105,12 @@ export default function DevControlPanel() {
         <Btn onClick={() => run(shown ? 'hide_results' : 'show_results')}>{shown ? '결과 숨기기' : '결과 공개'}</Btn>
         <Btn disabled={!next} onClick={() => next && run('set_question', next.id)}>다음 질문</Btn>
         <Btn onClick={() => run('standby')}>대기로</Btn>
-        <Btn onClick={() => run('backup')}>백업</Btn>
+        <Btn
+          disabled={!current}
+          onClick={() => post({ action: 'reset', scope: 'question', questionId: session?.active_question_id })}
+        >
+          이 질문 초기화
+        </Btn>
       </div>
 
       {error ? <p style={S.line}>{error}</p> : null}

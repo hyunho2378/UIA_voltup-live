@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { createClient } from '@supabase/supabase-js';
-import { applySessionAction } from './api/_lib/session-actions.js';
+import { handleControl } from './api/_lib/session-actions.js';
 
 // dev 서버 전용 미들웨어. vercel dev 없이도 세션 상태를 넘길 수 있게 한다.
 // apply:'serve' 라 프로덕션 빌드에는 존재하지 않는다. 인증이 없으므로 로컬 밖으로 내보내면 안 된다.
@@ -32,7 +32,7 @@ function devSessionControl(env) {
         const admin = createClient(env.SUPABASE_URL, env.SUPABASE_SECRET_KEY, {
           auth: { persistSession: false, autoRefreshToken: false },
         });
-        const { status, body } = await applySessionAction(admin, payload.action, payload.questionId);
+        const { status, body } = await handleControl(admin, payload);
         res.statusCode = status;
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify(body));

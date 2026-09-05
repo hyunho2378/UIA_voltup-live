@@ -48,26 +48,22 @@ export function ScreenView({
   results,
   liveCount = 0,
   standby = false,
-  backup = false,
   resultsVisible = true,
   voteUrl = '',
-  backupUrl = '',
   qrSize = 320,
 }) {
-  const items = results?.items ?? [];
+  // 집계는 반드시 지금 띄운 질문의 것이어야 한다. 다른 질문 집계면 없는 것으로 친다.
+  // 질문 전환 순간 이전 질문의 막대가 남는 걸 여기서 최종적으로 막는다.
+  const matched = results?.question_id === question?.id ? results : null;
+  const items = matched?.items ?? [];
   const totalVotes = items.reduce((sum, it) => sum + (it.count ?? 0), 0);
   const top = Math.max(0, ...items.map((it) => it.count ?? 0));
-  const isText = results?.type === 'text';
+  const isText = matched?.type === 'text';
 
   return (
     <GlassRoot background="/images/bg/ambient-screen.webp" className="flex items-stretch justify-center p-4xl">
       <Glass variant="screen" radius="screen" className="flex w-full max-w-screen flex-col p-4xl">
-        {backup ? (
-          <div key="backup" className="enter flex flex-1 flex-col gap-xl">
-            <h1 className="balance text-screenQuestion text-ink"><Ko>다른 화면으로 안내해 드릴게요</Ko></h1>
-            {backupUrl ? <QrPlate url={backupUrl} size={qrSize} /> : null}
-          </div>
-        ) : standby ? (
+        {standby ? (
           <QrPlate key="standby" url={voteUrl} size={qrSize} />
         ) : (
           <div key={`live-${question?.id ?? ''}`} className="enter flex flex-1 flex-col">
@@ -158,14 +154,28 @@ export default function Screen() {
 
   useEffect(() => {
     if (!isSupabaseConfigured || !qid) return undefined;
-    fetchQuestion(qid).then(setQuestion);
-    fetchResults(qid).then(setResults);
-    fetchLiveCount(qid).then(setLiveCount);
+    // 먼저 비운다. fetch 가 async 라 비우지 않으면 새 값이 올 때까지 이전 질문 막대가 남는다.
+    setQuestion(null);
+    setResults(null);
+    setLiveCount(0);
+
+    // 이전 질문의 fetch 가 뒤늦게 도착해 새 질문 위에 덮어쓰는 걸 막는다.
+    let alive = true;
+    fetchQuestion(qid).then((v) => alive && setQuestion(v));
+    fetchResults(qid).then((v) => alive && setResults(v));
+    fetchLiveCount(qid).then((v) => alive && setLiveCount(v));
+
     // broadcast 는 유실될 수 있다. 구독 payload 로 갱신하되 진입과 재연결 시 위에서 보정한다.
-    return subscribeResults(qid, (p) => {
-      if (p?.results) setResults(p.results);
-      if (typeof p?.live_count === 'number') setLiveCount(p.live_count);
+    // 채널 정리가 늦어 이전 results:{oldQid} 가 도착할 수 있어 question_id 로 거른다.
+    const off = subscribeResults(qid, (p) => {
+      if (p?.results?.question_id !== qid) return;
+      setResults(p.results);
+      if (typeof p.live_count === 'number') setLiveCount(p.live_count);
     });
+    return () => {
+      alive = false;
+      off();
+    };
   }, [qid]);
 
   return (
@@ -174,10 +184,8 @@ export default function Screen() {
       results={results}
       liveCount={liveCount}
       standby={session?.status === 'standby'}
-      backup={session?.status === 'backup'}
       resultsVisible={Boolean(session?.results_visible)}
       voteUrl={import.meta.env.VITE_VOTE_SHORT_URL || `${window.location.origin}/vote`}
-      backupUrl={import.meta.env.VITE_BACKUP_URL || ''}
       qrSize={qrSize}
     />
   );
