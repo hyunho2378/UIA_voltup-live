@@ -24,8 +24,10 @@ export async function applySessionAction(admin, action, questionId) {
   const { data, error } = await admin.from('sessions').update(patch).eq('id', SESSION_ID).select().single();
   if (error) return { status: 500, body: { error: error.message } };
 
-  // 마감 시 최종 집계 확정. 250ms 병합으로 스킵됐을 수 있는 마지막 투표까지 한 번 더 쏜다.
-  if (action === 'close_voting' && data.active_question_id) {
+  // 집계가 사람 눈앞에 확정되는 두 순간에 최종 집계를 다시 쏜다.
+  // 250ms 병합 때문에 마지막 투표들은 broadcast 되지 않은 채 남아 있을 수 있다.
+  // close_voting: 마감. show_results: 결과 공개(투표를 안 닫고 공개하는 진행이 실제로 있다).
+  if ((action === 'close_voting' || action === 'show_results') && data.active_question_id) {
     const { error: flushError } = await admin.rpc('flush_results', { q_id: data.active_question_id });
     if (flushError) console.error('flush_results 실패', flushError.message);
   }

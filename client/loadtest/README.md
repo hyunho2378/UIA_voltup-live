@@ -56,3 +56,28 @@ url/key 는 `client/.env` 에서 자동으로 읽는다. 다른 프로젝트로 
 ## 리포트
 
 `loadtest/reports/report-<n>-<ts>.json` 에 쌓인다. 커밋하지 않아도 된다.
+
+## verify.mjs — 실시간 정합성 검증
+
+부하가 아니라 **정합성**을 본다. 연결은 10개 미만만 쓴다.
+
+```
+node loadtest/verify.mjs --url=<테스트URL> --key=<publishable> --secret=<secret>
+node loadtest/verify.mjs --env=.env.test
+```
+
+`client/.env` 와 같은 프로젝트면 거부한다(`--allow-prod` 로만 통과). 검증은 votes 를 지우고 세션을 건드리므로
+**반드시 테스트 전용 프로젝트**에서 돌린다.
+
+| 케이스 | 확인 |
+|---|---|
+| 1 전환 정합성 | Q2 활성 이후 Q1 집계가 그려진 프레임 0 |
+| 2 늦은 broadcast | Q1 payload 를 Q2 상태에서 거부(`acceptsBroadcast`) |
+| 3 초기화 | 질문 단위 → final:true 0집계 수신·다른 질문 보존 / 전체 → votes 0·standby |
+| 4 중복 | 같은 질문 재투표 23505, 다른 질문은 허용 |
+| 5 마감 | close_voting 후 42501, final 정확히 1회 |
+| 6 재연결 | 끊긴 사이 들어온 표가 재진입 RPC 로 반영 |
+| 7 유실 관측 | 단건 투표 20회 broadcast 수신률 |
+
+판단은 하네스가 따로 하지 않는다. `src/lib/screen-state.js` 의 `acceptsBroadcast` / `visibleResults` 와
+`api/_lib/session-actions.js` 를 **앱과 같은 함수로 import** 해서 태운다. 결과는 `loadtest/reports/verify-report.json`.

@@ -78,6 +78,21 @@ console.log('observer:', observerStatus);
 // ── 가상 청중 N명
 console.log(`clients=${N} ramp=${RAMP}ms voters watch results=${VOTERS_WATCH_RESULTS}`);
 const clients = [];
+
+// 중간에 죽으면 N개 소켓이 서버 타임아웃(수십 초)까지 연결 슬롯을 붙잡는다.
+// 무료 티어 200 연결에서 이건 다음 실행까지 번진다. 어떤 경로로 끝나든 반드시 닫는다.
+let closed = false;
+async function closeAll() {
+  if (closed) return;
+  closed = true;
+  for (const c of [...clients, observer]) {
+    try { await c.removeAllChannels(); c.realtime.disconnect(); } catch {}
+  }
+}
+for (const sig of ['SIGINT', 'SIGTERM']) {
+  process.on(sig, async () => { console.log(`\n${sig} 수신. 연결 정리 후 종료한다.`); await closeAll(); process.exit(130); });
+}
+process.on('uncaughtException', async (e) => { console.error(e); await closeAll(); process.exit(1); });
 let subscribed = 0;
 const joinStart = Date.now();
 
@@ -173,10 +188,7 @@ await writeFile(out, JSON.stringify(report, null, 2));
 console.log('리포트:', out);
 
 // ── 정리
-for (const c of [...clients, observer]) {
-  await c.removeAllChannels();
-  c.realtime.disconnect();
-}
+await closeAll();
 
 if (CLEANUP && SECRET) {
   const admin = createClient(URL, SECRET, { auth: { persistSession: false, autoRefreshToken: false } });

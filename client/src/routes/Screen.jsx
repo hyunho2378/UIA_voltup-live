@@ -5,6 +5,7 @@ import Glass from '../components/glass/Glass.jsx';
 import Ko from '../components/glass/Ko.jsx';
 import { layout, motion } from '../tokens.js';
 import { useSession } from '../lib/session-context.jsx';
+import { acceptsBroadcast, visibleResults } from '../lib/screen-state.js';
 import {
   isSupabaseConfigured,
   fetchQuestion,
@@ -54,7 +55,7 @@ export function ScreenView({
 }) {
   // 집계는 반드시 지금 띄운 질문의 것이어야 한다. 다른 질문 집계면 없는 것으로 친다.
   // 질문 전환 순간 이전 질문의 막대가 남는 걸 여기서 최종적으로 막는다.
-  const matched = results?.question_id === question?.id ? results : null;
+  const matched = visibleResults(question, results);
   const items = matched?.items ?? [];
   const totalVotes = items.reduce((sum, it) => sum + (it.count ?? 0), 0);
   const top = Math.max(0, ...items.map((it) => it.count ?? 0));
@@ -168,7 +169,7 @@ export default function Screen() {
     // broadcast 는 유실될 수 있다. 구독 payload 로 갱신하되 진입과 재연결 시 위에서 보정한다.
     // 채널 정리가 늦어 이전 results:{oldQid} 가 도착할 수 있어 question_id 로 거른다.
     const off = subscribeResults(qid, (p) => {
-      if (p?.results?.question_id !== qid) return;
+      if (!acceptsBroadcast(qid, p)) return;
       setResults(p.results);
       if (typeof p.live_count === 'number') setLiveCount(p.live_count);
     });

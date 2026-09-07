@@ -56,6 +56,25 @@ anon(청중)에게 허용되는 것은 이것뿐이다.
 - broadcast는 유실될 수 있다. **초기 진입과 재연결 시 반드시 `get_results` / `get_live_count`로 보정한다.** 구독만으로 상태를 만들지 않는다.
 - 채널 status → UI 상태 매핑은 `client/src/lib/supabase.js`의 `mapChannelStatus` 하나만 쓴다. SUBSCRIBED=connected, CHANNEL_ERROR/TIMED_OUT=reconnecting, 그 외=disconnected.
 
+### 한 유저가 쓰는 연결과 채널 (실측 2026-09-05, 프로덕션 빌드)
+
+무료 티어 한도 200은 **동시 WebSocket 연결** 수다. 채널 수가 아니다.
+`client/src/lib/supabase.js`가 모듈 최상단에서 클라이언트를 하나만 만들고 모든 채널이 그 소켓 위에 다중화된다.
+
+| 라우트 | WebSocket | 채널 |
+|---|---|---|
+| `/` `/vote` `/admin` `/admin/login` `/offline` `/404` | 1 | `session` |
+| `/screen` | 1 | `session` + `results:{qid}` |
+| `/preview` | **0** | 없음 (SessionProvider 밖에서 그린다) |
+
+- **관객 1명 = 연결 1개.** 200명까지가 무료 티어 한도이고, 그 이상은 대형화면·어드민 몫까지 함께 밀린다.
+- `SessionProvider`는 App 하나에만 마운트된다. 라우트를 옮겨도 `session` 채널은 다시 열리지 않는다.
+- 질문이 바뀌면 `results:{oldQid}`를 `removeChannel` 하고 `results:{newQid}`를 연다. 동시에 2개가 되지 않는다.
+- dev 에서는 React StrictMode 가 effect 를 두 번 돌려 `session` 이 join 2 / leave 1 로 관측된다.
+  순증 채널은 1개이고 프로덕션 빌드에서는 join 1 / leave 0 이다. 누수가 아니다.
+- **부하 하네스는 가상 청중 1명당 클라이언트 1개 = 소켓 1개를 만든다.** N=400 스윕은 연결 400개를 실제로 쓴다.
+  대시보드의 최고 동시 연결 수치는 이 스윕의 잔상이다. 반드시 테스트 전용 프로젝트에서 돌린다.
+
 ## voter_key (중복 투표 차단)
 
 - localStorage/sessionStorage 금지 규율 때문에 브라우저 식별자는 **쿠키 `vk`**(path=/, max-age 86400, samesite=lax).

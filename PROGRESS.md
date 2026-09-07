@@ -28,6 +28,11 @@
 - 결과 정합성 수정: 질문 전환 시 /screen 결과 즉시 비움 + broadcast/fetch 에 question_id 가드. 이전 질문 막대가 남던 원인 제거
 - 투표 초기화 추가(어드민 '이 질문 초기화' 즉시 / '전체 초기화' 2단 확인). 서버 secret 키 경로에서 votes 삭제 후 flush_results 로 화면 0 확정
 - 외부 도구 전환 경로 제거(0006). status CHECK 는 다시 (standby, live, ended)
+- 실시간 정합성 자동 검증 하네스 client/loadtest/verify.mjs (7케이스, 연결 9개 미만). 판단은 앱과 같은 함수를
+  import 해서 태운다: src/lib/screen-state.js 의 acceptsBroadcast/visibleResults, api/_lib/session-actions.js
+- 하네스가 찾은 실결함 수정: show_results 도 flush_results 를 쏜다. 250ms 병합 때문에 마지막 표들이
+  broadcast 되지 않은 채 남아, 투표를 닫지 않고 결과를 공개하면 화면이 실제보다 적게 나왔다(실측 3표 → 1표 표시)
+- vote-storm.mjs 에 SIGINT/SIGTERM/uncaughtException 정리 경로 추가. 중단 시 N개 소켓이 서버 타임아웃까지 남던 문제
 
 ## 진행 중
 - **배포 준비 완료, 실키 미투입.** 리포는 커밋 가능 상태. 실키는 client/.env 에만 있고 커밋되지 않는다.
@@ -43,6 +48,32 @@
 - 리허설 잔여 투표 실측: 검증 시작 시점 프로덕션에 votes 7행(Q1 3 / Q2 2 / Q3 2)이 남아 있었다.
   "투표 안 했는데 결과가 나온다"의 실제 원인. 초기화 기능으로 제거했고 검증 후 votes 0 / standby 로 복구.
 - Supabase 스키마·시드 적용 완료 확인(2026-09-02). sessions/questions/options/votes, RLS, get_results, 중복 차단 전부 실측 통과.
+
+## 실시간 정합성 검증 (2026-09-05, 프로덕션 프로젝트, 연결 9개 미만)
+
+`node loadtest/verify.mjs --env=.env --allow-prod` → **7/7 통과**. 검증 후 votes 0 / standby 복구 확인.
+
+| 케이스 | 실측 |
+|---|---|
+| 1 전환 정합성 | DB 3행 = 화면 3표, stale 프레임 0 / 7프레임 |
+| 2 늦은 broadcast | Q1 payload 주입 → 거부 1, stale 0 |
+| 3 초기화 | final:true 0집계 수신, Q1 0행, Q2 1행 보존, 전체 0행 + standby |
+| 4 중복 | 첫 ok / 재투표 23505 / 다른 질문 ok |
+| 5 마감 | 마감 후 42501, final 정확히 1회 |
+| 6 재연결 | 끊기 전 1표 → 끊긴 사이 3표 → 재연결 후 4표 |
+| 7 유실 관측 | 20/20 수신(100%), 유실 회차 없음 |
+
+케이스 1 은 처음에 FAIL(화면 1표 / DB 3표)이었고, 원인은 `show_results` 가 flush 를 쏘지 않던 것.
+250ms 병합 창에 표가 몰리면 마지막 표들이 방송되지 않는데, 마감 전에 결과를 공개하는 진행에서는
+보정할 계기가 없었다. `applySessionAction` 의 flush 조건에 `show_results` 를 추가해 해결.
+
+## 연결 실측 (2026-09-05)
+
+- 프로덕션 빌드 기준 **관객 1명 = WebSocket 1개**. 채널은 /vote 1, /screen 2, /admin 1, /preview 0.
+- dev 에서만 StrictMode 로 `session` 채널이 join 2 / leave 1. 순증 1개이고 프로덕션 빌드는 join 1 / leave 0. 누수 아님.
+- 앱 코드에 채널 누수 없음. 모든 subscribe 지점에 대응하는 removeChannel 이 있다.
+- **대시보드 398/200 의 추정 원인은 부하 스윕**(vote-storm.mjs, 가상 청중 1명 = 소켓 1개, N=400 스윕 실행 이력).
+  앱이 아니다. 재발 방지: 스윕은 테스트 전용 프로젝트에서만, 그리고 중단 시에도 소켓을 닫도록 정리 경로 추가함.
 
 ## 다음 작업 (순서)
 1. VITE_VOTE_SHORT_URL 확정 후 .env 와 Vercel 에 입력. 실기기 QR 스캔 1회.
