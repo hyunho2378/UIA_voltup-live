@@ -99,6 +99,17 @@ export const layout = {
   chartValueGap: 'clamp(12px, 1vw, 18px)',
   screenBarHeight: 'clamp(28px, 2.8vw, 56px)',
   screenChartTop: 'clamp(40px, 4vw, 76px)', // 질문과 첫 행 사이
+
+  // 워드클라우드. 위계는 크기로만 만든다(색·투명도 아님).
+  // 크기는 단어 수에 따라 cloudFitWords 기준으로 함께 줄어든다(넘침 방지).
+  cloudMin: 'clamp(24px, 2.6vw, 50px)',
+  cloudMax: 'clamp(64px, 8vw, 154px)',
+  cloudGap: 'clamp(10px, 1.2vw, 22px)',
+  // 패널 전체 폭을 쓰면 단어가 한 줄로 늘어서 띠가 된다. 구름이 되려면 줄이 여러 개여야 한다.
+  // 짧은 화면에서는 폭을 넓혀 줄 수를 줄인다. 줄이 늘면 세로로 넘친다.
+  cloudWidth: 'min(100%, max(58vh, 42vw))',
+  cloudWords: 30, // 상위 N
+  cloudFitWords: 13, // 이 개수일 때 최대 크기. 더 많으면 전체를 줄여 패널을 넘지 않게 한다
   qrRatio: 0.38, // 화면 짧은 변 대비 QR 크기
   breakpoints: {
     xs: 320, sm: 390, md: 768, lg: 1024, xl: 1280,

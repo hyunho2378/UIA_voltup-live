@@ -59,6 +59,25 @@ const textAnswers = [
   '방향', '연결', '시작', '가능성', '용기', '연결', '방향',
 ];
 
+// 워드클라우드용. 막대 뷰는 단어 수가 늘면 행이 그만큼 늘어 읽기 어려워지므로 목록을 따로 둔다.
+// 실제 행사 규모(응답 100+)에서 나올 법한 분포: 1등이 뚜렷하고 꼬리가 길다.
+const cloudAnswers = [
+  ...Array(18).fill('연결'),
+  ...Array(13).fill('용기'),
+  ...Array(11).fill('방향'),
+  ...Array(9).fill('실행'),
+  ...Array(8).fill('가능성'),
+  ...Array(6).fill('시작'),
+  ...Array(5).fill('성장'),
+  ...Array(4).fill('질문'),
+  ...Array(4).fill('사람'),
+  ...Array(3).fill('임팩트'),
+  ...Array(3).fill('현장'),
+  ...Array(2).fill('책임'),
+  ...Array(2).fill('지속가능'),
+  '기회', '태도', '균형', '호기심',
+];
+
 const tally = (words) => {
   const m = new Map();
   for (const w of words) m.set(w, (m.get(w) ?? 0) + 1);
@@ -90,7 +109,8 @@ export function buildMocks() {
       landslide: choiceResults(sampleQuestions[1], [96, 14, 11, 7]),
       // 주관식 빈도
       text: { question_id: 's5', type: 'text', total: textAnswers.length, items: tally(textAnswers) },
+      cloud: { question_id: 's5', type: 'text', total: cloudAnswers.length, items: tally(cloudAnswers) },
     },
-    counts: { close: 128, landslide: 128, text: textAnswers.length },
+    counts: { close: 128, landslide: 128, text: textAnswers.length, cloud: cloudAnswers.length },
   };
 }

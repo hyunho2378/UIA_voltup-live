@@ -43,6 +43,115 @@ function QrPlate({ url, size }) {
   );
 }
 
+// 같은 집계를 다르게 배치하는 뷰일 뿐이다. 배경도 보더도 없다. 글래스 위에 텍스트만 얹는다.
+// 위계는 크기로만 만든다. 색은 ink 단색이고 최다 단어만 blue 다.
+function WordCloud({ items }) {
+  const top = Math.max(1, ...items.map((it) => it.count ?? 0));
+  const words = items.slice(0, layout.cloudWords);
+
+  // 큰 단어가 가운데로 오게 지그재그로 넣는다. 나선이나 물리엔진 배치는 겹침과 성능 때문에 쓰지 않는다.
+  const arranged = [];
+  words.forEach((w, i) => (i % 2 ? arranged.push(w) : arranged.unshift(w)));
+
+  const counts = words.map((w) => w.count ?? 0).sort((a, b) => a - b);
+  const median = counts[Math.floor(counts.length / 2)] ?? 0;
+
+  // 단어가 많을수록 전체를 줄인다. 이게 없으면 30단어에서 패널을 넘어 화면이 스크롤된다.
+  const fit = Math.min(1, Math.sqrt(layout.cloudFitWords / words.length)).toFixed(4);
+  const min = `calc(${layout.cloudMin} * ${fit})`;
+  const max = `calc(${layout.cloudMax} * ${fit})`;
+
+  return (
+    <div
+      className="mx-auto flex flex-1 flex-wrap content-center items-center justify-center"
+      style={{ gap: layout.cloudGap, marginTop: layout.screenChartTop, maxWidth: layout.cloudWidth }}
+    >
+      {arranged.map((w) => {
+        const count = w.count ?? 0;
+        // sqrt 매핑. 1등이 표 수에 비례해 과하게 커지지 않는다.
+        const r = Math.sqrt(count / top).toFixed(4);
+        return (
+          <span
+            key={w.word}
+            className={`cloud-word ${count === top ? 'text-blue' : 'text-ink'}`}
+            style={{
+              // clamp(최소, 최대 * sqrt(비율), 최대). 꼬리 단어는 최소값에 붙고 1등만 최대값에 닿는다.
+              fontSize: `clamp(${min}, calc(${layout.cloudMax} * ${fit} * ${r}), ${max})`,
+              fontWeight: count >= median ? 700 : 600,
+              letterSpacing: '-0.01em',
+              lineHeight: 1.2,
+            }}
+          >
+            <Ko>{w.word}</Ko>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function BarChart({ items, totalVotes, top, isText }) {
+  return (
+    <div className="flex flex-1 flex-col justify-center" style={{ marginTop: layout.screenChartTop }}>
+      {/* 단일 grid. 행마다 독립 grid 를 쓰면 라벨 열 폭이 제각각이라 막대 시작점이 어긋난다.
+          행 래퍼는 display:contents 라 셀들이 부모 grid 에 직접 들어간다. */}
+      <div
+        className="grid flex-1"
+        style={{
+          gridTemplateColumns: layout.chartCols,
+          // column-gap 을 쓰면 행 hairline 이 열 사이에서 끊긴다. 간격은 셀 왼쪽 padding 으로 준다.
+          columnGap: 0,
+          gridAutoRows: '1fr',
+          minHeight: `calc(${layout.chartRowMin} * ${items.length})`,
+          maxHeight: `calc(${layout.chartRowMax} * ${items.length})`,
+        }}
+      >
+        {items.map((it, i) => {
+          const count = it.count ?? 0;
+          const pct = totalVotes ? Math.round((count / totalVotes) * 100) : 0;
+          const lead = count === top && top > 0;
+          const line = i ? 'border-t border-rowLine' : '';
+          return (
+            <div key={it.option_id ?? it.word} className="contents">
+              <div className={`${line} flex items-center`}>
+                <span className="text-screenKey text-ink tabular">{isText ? '' : ALPHA[i]}</span>
+              </div>
+              <div className={`${line} flex items-center`} style={{ paddingLeft: layout.chartGap }}>
+                <p className="text-screenLabel text-ink">
+                  <Ko>{it.label ?? it.word}</Ko>
+                </p>
+              </div>
+              <div className={`${line} flex items-center`} style={{ paddingLeft: layout.chartGap }}>
+                <div
+                  className="w-full overflow-hidden rounded-bar bg-barTrack"
+                  style={{ height: layout.screenBarHeight }}
+                >
+                  <div
+                    className={`bar-fill h-full rounded-bar ${lead ? 'bg-blue bar-lead' : 'bg-inkSoft'}`}
+                    style={{
+                      '--bar': totalVotes ? count / totalVotes : 0,
+                      '--bar-delay': `calc(${i} * ${motion.stagger})`,
+                    }}
+                  />
+                </div>
+              </div>
+              <div className={`${line} flex items-center`} style={{ paddingLeft: layout.chartGap }}>
+                <p
+                  className="flex items-baseline text-screenPct text-ink tabular"
+                  style={{ gap: layout.chartValueGap }}
+                >
+                  {pct}%
+                  <span className="text-screenVotes text-ink tabular">{count}표</span>
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /** 표시 전용. Supabase 도 세션도 모른다. */
 export function ScreenView({
   question,
@@ -50,6 +159,7 @@ export function ScreenView({
   liveCount = 0,
   standby = false,
   resultsVisible = true,
+  resultsView = 'bars',
   voteUrl = '',
   qrSize = 320,
 }) {
@@ -60,6 +170,8 @@ export function ScreenView({
   const totalVotes = items.reduce((sum, it) => sum + (it.count ?? 0), 0);
   const top = Math.max(0, ...items.map((it) => it.count ?? 0));
   const isText = matched?.type === 'text';
+  // 객관식은 뷰 설정과 무관하게 언제나 막대다. 워드클라우드는 주관식에만 의미가 있다.
+  const cloud = isText && resultsView === 'cloud';
 
   return (
     <GlassRoot background="/images/bg/ambient-screen.webp" className="flex items-stretch justify-center p-4xl">
@@ -77,63 +189,11 @@ export function ScreenView({
 
             {resultsVisible && items.length > 0 ? (
               <>
-                <div className="flex flex-1 flex-col justify-center" style={{ marginTop: layout.screenChartTop }}>
-                  {/* 단일 grid. 행마다 독립 grid 를 쓰면 라벨 열 폭이 제각각이라 막대 시작점이 어긋난다.
-                      행 래퍼는 display:contents 라 셀들이 부모 grid 에 직접 들어간다. */}
-                  <div
-                    className="grid flex-1"
-                    style={{
-                      gridTemplateColumns: layout.chartCols,
-                      // column-gap 을 쓰면 행 hairline 이 열 사이에서 끊긴다. 간격은 셀 왼쪽 padding 으로 준다.
-                      columnGap: 0,
-                      gridAutoRows: '1fr',
-                      minHeight: `calc(${layout.chartRowMin} * ${items.length})`,
-                      maxHeight: `calc(${layout.chartRowMax} * ${items.length})`,
-                    }}
-                  >
-                    {items.map((it, i) => {
-                      const count = it.count ?? 0;
-                      const pct = totalVotes ? Math.round((count / totalVotes) * 100) : 0;
-                      const lead = count === top && top > 0;
-                      const line = i ? 'border-t border-rowLine' : '';
-                      return (
-                        <div key={it.option_id ?? it.word} className="contents">
-                          <div className={`${line} flex items-center`}>
-                            <span className="text-screenKey text-ink tabular">{isText ? '' : ALPHA[i]}</span>
-                          </div>
-                          <div className={`${line} flex items-center`} style={{ paddingLeft: layout.chartGap }}>
-                            <p className="text-screenLabel text-ink">
-                              <Ko>{it.label ?? it.word}</Ko>
-                            </p>
-                          </div>
-                          <div className={`${line} flex items-center`} style={{ paddingLeft: layout.chartGap }}>
-                            <div
-                              className="w-full overflow-hidden rounded-bar bg-barTrack"
-                              style={{ height: layout.screenBarHeight }}
-                            >
-                              <div
-                                className={`bar-fill h-full rounded-bar ${lead ? 'bg-blue bar-lead' : 'bg-inkSoft'}`}
-                                style={{
-                                  '--bar': totalVotes ? count / totalVotes : 0,
-                                  '--bar-delay': `calc(${i} * ${motion.stagger})`,
-                                }}
-                              />
-                            </div>
-                          </div>
-                          <div className={`${line} flex items-center`} style={{ paddingLeft: layout.chartGap }}>
-                            <p
-                              className="flex items-baseline text-screenPct text-ink tabular"
-                              style={{ gap: layout.chartValueGap }}
-                            >
-                              {pct}%
-                              <span className="text-screenVotes text-ink tabular">{count}표</span>
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                {cloud ? (
+                  <WordCloud items={items} />
+                ) : (
+                  <BarChart items={items} totalVotes={totalVotes} top={top} isText={isText} />
+                )}
                 <p className="mt-xl text-screenMeta text-ink tabular">{liveCount}명 참여</p>
               </>
             ) : null}
@@ -186,6 +246,7 @@ export default function Screen() {
       liveCount={liveCount}
       standby={session?.status === 'standby'}
       resultsVisible={Boolean(session?.results_visible)}
+      resultsView={session?.results_view ?? 'bars'}
       voteUrl={import.meta.env.VITE_VOTE_SHORT_URL || `${window.location.origin}/vote`}
       qrSize={qrSize}
     />

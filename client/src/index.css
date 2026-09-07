@@ -226,6 +226,23 @@
   filter: brightness(theme('brightness.lead'));
 }
 
+/* 워드클라우드: 새로 등장한 단어만 페이드 + 살짝 확대.
+   크기 변화(font-size)는 레이아웃 속성이라 애니메이션하지 않는다(AGENTS 1절). 즉시 반영된다. */
+@keyframes cloud-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.cloud-word {
+  display: inline-block;
+  animation: cloud-in theme('transitionDuration.base') theme('transitionTimingFunction.out') both;
+}
+
 @keyframes live-pulse {
   0%,
   100% {

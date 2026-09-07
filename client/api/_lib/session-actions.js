@@ -5,11 +5,14 @@ export const SESSION_ID = '00000000-0000-0000-0000-000000000001';
 
 export function patchFor(action, questionId) {
   switch (action) {
-    case 'set_question': return { active_question_id: questionId, voting_open: false, results_visible: false, status: 'live' };
+    case 'set_question': return { active_question_id: questionId, voting_open: false, results_visible: false, status: 'live', results_view: 'bars' };
     case 'open_voting':  return { voting_open: true };
     case 'close_voting': return { voting_open: false };
     case 'show_results': return { results_visible: true };
     case 'hide_results': return { results_visible: false };
+    // 결과 뷰 전환. 같은 집계를 다르게 배치할 뿐이라 집계·투표 상태는 건드리지 않는다.
+    case 'view_bars':    return { results_view: 'bars' };
+    case 'view_cloud':   return { results_view: 'cloud' };
     case 'standby':      return { status: 'standby', voting_open: false, results_visible: false };
     case 'end':          return { status: 'ended', voting_open: false };
     default: return null;
@@ -21,7 +24,17 @@ export async function applySessionAction(admin, action, questionId) {
   const patch = patchFor(action, questionId);
   if (!patch) return { status: 400, body: { error: 'unknown_action' } };
 
-  const { data, error } = await admin.from('sessions').update(patch).eq('id', SESSION_ID).select().single();
+  let { data, error } = await admin.from('sessions').update(patch).eq('id', SESSION_ID).select().single();
+
+  // 0007(results_view) 미적용 DB 배포 가드. 코드가 마이그레이션보다 먼저 올라가도
+  // 질문 전환 같은 기본 제어가 죽지 않게 한다. 뷰 전환만 안 되고 나머지는 그대로 동작한다.
+  // 0007 이 모든 환경에 적용되면 이 블록은 지워도 된다.
+  if (error && 'results_view' in patch && /results_view/.test(error.message)) {
+    const { results_view, ...rest } = patch;
+    if (Object.keys(rest).length === 0) return { status: 501, body: { error: 'results_view_not_migrated' } };
+    console.warn('sessions.results_view 없음. 0007 미적용 상태로 동작한다.');
+    ({ data, error } = await admin.from('sessions').update(rest).eq('id', SESSION_ID).select().single());
+  }
   if (error) return { status: 500, body: { error: error.message } };
 
   // 집계가 사람 눈앞에 확정되는 두 순간에 최종 집계를 다시 쏜다.

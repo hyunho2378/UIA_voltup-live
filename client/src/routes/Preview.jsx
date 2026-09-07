@@ -102,8 +102,17 @@ export default function Preview() {
           <Frame label="결과 / 객관식 압도적 1등" w={1920} h={1080} scale={0.42}>
             <ScreenView question={q2} results={mockResults.landslide} liveCount={mockCounts.landslide} resultsVisible />
           </Frame>
-          <Frame label="결과 / 주관식 빈도" w={1920} h={1080} scale={0.42}>
+          <Frame label="결과 / 주관식 막대" w={1920} h={1080} scale={0.42}>
             <ScreenView question={q5} results={mockResults.text} liveCount={mockCounts.text} resultsVisible />
+          </Frame>
+          <Frame label="결과 / 주관식 워드클라우드" w={1920} h={1080} scale={0.42}>
+            <ScreenView
+              question={q5}
+              results={mockResults.cloud}
+              liveCount={mockCounts.cloud}
+              resultsVisible
+              resultsView="cloud"
+            />
           </Frame>
           <Frame label="결과 미공개 / 질문만" w={1920} h={1080} scale={0.42}>
             <ScreenView question={q2} results={mockResults.landslide} resultsVisible={false} />
@@ -120,6 +129,14 @@ export default function Preview() {
           </Frame>
           <Frame label="제어 / 다시 연결 중" w={1280} h={800} scale={0.55}>
             <AdminView session={MOCK_SESSION} conn="reconnecting" questions={sampleQuestions} count={128} />
+          </Frame>
+          <Frame label="제어 / 주관식 결과 공개(뷰 토글)" w={1280} h={800} scale={0.55}>
+            <AdminView
+              session={{ ...MOCK_SESSION, active_question_id: 's5', results_visible: true, results_view: 'cloud' }}
+              conn="connected"
+              questions={sampleQuestions}
+              count={128}
+            />
           </Frame>
           <Frame label="제어 / 끊김" w={1280} h={800} scale={0.55}>
             <AdminView

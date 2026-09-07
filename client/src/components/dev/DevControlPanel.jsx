@@ -78,6 +78,7 @@ export default function DevControlPanel() {
   const idx = ordered.findIndex((q) => q.id === session?.active_question_id);
   const next = idx >= 0 ? ordered[idx + 1] : ordered[0];
   const current = idx >= 0 ? ordered[idx] : null;
+  const view = session?.results_view ?? 'bars';
 
   const Btn = ({ onClick, disabled, children }) => (
     <button
@@ -105,6 +106,12 @@ export default function DevControlPanel() {
         <Btn onClick={() => run(shown ? 'hide_results' : 'show_results')}>{shown ? '결과 숨기기' : '결과 공개'}</Btn>
         <Btn disabled={!next} onClick={() => next && run('set_question', next.id)}>다음 질문</Btn>
         <Btn onClick={() => run('standby')}>대기로</Btn>
+        <Btn
+          disabled={current?.type !== 'text'}
+          onClick={() => run(view === 'cloud' ? 'view_bars' : 'view_cloud')}
+        >
+          {view === 'cloud' ? '막대로' : '워드클라우드로'}
+        </Btn>
         <Btn
           disabled={!current}
           onClick={() => post({ action: 'reset', scope: 'question', questionId: session?.active_question_id })}

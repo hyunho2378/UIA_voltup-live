@@ -1,5 +1,5 @@
 -- voltup-live · _ALL.sql
--- 0001 → 0002 → 0003 → 0004 → 0005 → seed → 0006 을 이어붙인 단일 파일.
+-- 0001 → 0002 → 0003 → 0004 → 0005 → seed → 0006 → 0007 을 이어붙인 단일 파일.
 -- Supabase 대시보드 SQL Editor 에 전체를 붙여넣고 한 번에 Run.
 -- 개별 파일을 고치면 이 파일을 다시 만든다(정본은 migrations/ 와 seed.sql).
 
@@ -339,3 +339,11 @@ update public.sessions set status = 'standby' where status = 'backup';
 alter table public.sessions drop constraint if exists sessions_status_check;
 alter table public.sessions add constraint sessions_status_check
   check (status in ('standby','live','ended'));
+
+-- ===== 0007_results_view =====
+-- voltup-live · 0007 결과 뷰 전환 (막대 ↔ 워드클라우드)
+-- 주관식 결과를 대형화면에서 어떤 형태로 그릴지 어드민이 정한다. 집계는 그대로다(같은 데이터, 다른 배치).
+-- 비파괴: 컬럼 추가만. 기존 행은 default 'bars' 로 채워진다.
+
+alter table public.sessions add column if not exists results_view text not null default 'bars'
+  check (results_view in ('bars','cloud'));

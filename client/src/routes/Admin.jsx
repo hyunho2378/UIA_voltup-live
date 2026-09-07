@@ -37,6 +37,10 @@ export function AdminView({
   const idx = ordered.findIndex((q) => q.id === activeId);
   const next = idx >= 0 ? ordered[idx + 1] : ordered[0];
 
+  // 워드클라우드는 주관식 결과에만 의미가 있다. 객관식이거나 결과가 안 떠 있으면 토글을 감춘다.
+  const cloudable = ordered[idx]?.type === 'text' && shown;
+  const view = session?.results_view ?? 'bars';
+
   return (
     <GlassRoot background="/images/bg/ambient-admin.webp" className="admin-grid p-2xl" panelKey="admin">
       <Glass variant="regular" radius="xl" className="p-panel md:row-span-6">
@@ -67,9 +71,23 @@ export function AdminView({
         {open ? '투표 닫기' : '투표 열기'}
       </GlassButton>
 
-      <GlassButton prominent={shown} disabled={busy} onClick={() => onAction(shown ? 'hide_results' : 'show_results')}>
-        {shown ? '결과 숨기기' : '결과 공개'}
-      </GlassButton>
+      <div className="grid gap-md">
+        <GlassButton prominent={shown} disabled={busy} onClick={() => onAction(shown ? 'hide_results' : 'show_results')}>
+          {shown ? '결과 숨기기' : '결과 공개'}
+        </GlassButton>
+
+        {/* 같은 집계를 어떻게 배치할지만 고른다. 투표와 집계 상태는 건드리지 않는다. */}
+        {cloudable ? (
+          <div className="grid grid-cols-2 gap-md">
+            <GlassButton prominent={view === 'bars'} disabled={busy} onClick={() => onAction('view_bars')}>
+              막대
+            </GlassButton>
+            <GlassButton prominent={view === 'cloud'} disabled={busy} onClick={() => onAction('view_cloud')}>
+              워드클라우드
+            </GlassButton>
+          </div>
+        ) : null}
+      </div>
 
       <GlassButton disabled={busy || !next} onClick={() => next && onAction('set_question', next.id)}>
         다음 질문
