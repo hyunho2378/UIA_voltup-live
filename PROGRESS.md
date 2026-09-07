@@ -165,3 +165,11 @@
 
 ## 데이터 무결성 주의
 - 확정된 질문 문안이 오면 SOURCE.md에 원문 그대로 넣고 문자 단위로 시드. 윤문 금지.
+
+## 최종 행사 시나리오 검증 (2026-09-07)
+
+- `node loadtest/scenario.mjs --env=.env --allow-prod` 실행: **33/33 통과**.
+- 실제 순서(standby → Q1 공개 전/투표/마감 전 결과 공개/마감 → Q2 → Q3 주관식/초기화 → standby)와 재연결·늦은 broadcast를 확인했다.
+- 최대 동시 연결은 3개(admin, screen, voter)로 10개 미만이다. 부하 스윕은 실행하지 않았다.
+- 실행 전 votes 0행, 실행 후 votes 0행과 `standby`, `voting_open=false`, `results_visible=false`를 재확인했다.
+- 루트 `.gitignore`에 참고 폴더 3개를 추가하고 기존 추적분은 인덱스에서만 제거했다.
