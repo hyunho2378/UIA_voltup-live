@@ -39,6 +39,12 @@ export default {
         vote: layout.voteMaxWidth,
         admin: layout.adminBase,
         screen: layout.screenBase,
+        coverGraphic: layout.coverGraphicMax,
+        coverGraphicSm: layout.coverGraphicMaxSm,
+      },
+      maxHeight: {
+        coverGraphic: layout.coverGraphicMaxH,
+        coverGraphicSm: layout.coverGraphicMaxHSm,
       },
       minHeight: {
         touch: layout.touchMin,

@@ -95,11 +95,28 @@
 
 | 구성 | 자산 | 크기 토큰 |
 |---|---|---|
-| 로고 | `/images/brand/logo.svg` | `coverLogoMax` |
-| 타이틀 | `/images/brand/title.svg` (2026 UIA x 한양대학교 / NEXT IMPACT FORUM) | `coverTitleMax` |
-| 라벨 | "INTERACTIVE SESSION" | `screenEyebrowWide` |
-| 국문 타이틀 | "청중과 함께 그려보는 미래의 대학" | `screenQuestion` + `<Ko>` |
-| 그래픽 | `/images/brand/graphic.webp` | `coverGraphicMax`, `coverGraphicMaxH` |
+| 로고 | `/images/brand/logo.svg` | `coverLogoMax`(축소: clamp(64,6vw,130)) |
+| 타이틀 | `/images/brand/title.svg` (2026 UIA x 한양대학교 / NEXT IMPACT FORUM) | `coverTitleMax`(축소: min(40vw,600px)) |
+| 모듈 태그 1행(영문) | "MODULE 05" | `screenModuleEn` |
+| 모듈 태그 2행(한글) | "인터렉티브 세션"(큐시트 표기 그대로) | `screenModuleKr` |
+| 국문 타이틀 | "청중과 함께 그려보는 미래의 대학"(줄바꿈 마커 없음, 자연 wrap) | `screenQuestion` + `<Ko>` |
+| 그래픽 | `/images/brand/graphic.webp` | `coverGraphicMax/MaxH`(lg이상), `coverGraphicMaxSm/MaxHSm`(lg 미만) |
+
+**이 세션은 포럼 전체가 아니라 그 중 5모듈하나다.** 타이틀 SVG 가 포럼 전체 브랜딩을 그대로 보여주면
+이 세션이 포럼 전체인것처럼 읽힌다. 로고·타이틀을 작게 쓰고 모듈 태그로 위계를 보완한다.
+모듈 태그는 영문(작고 넓은 트래킹, 태그 느낌)과 한글(굵고 좋은 트래킹, 실제 세션명 강조) 두 줄이며,
+둘 사이 간격을 `spacing.md`(12px)로 명시적으로 둔다(기본 행간만으로는 둘이 붙어 보였다).
+한글 헤드라인은 이전에 숨가로 강제 줄바꿈(` / `)을 쓨다. 밀맞붙어서 읽히지 않는다는 피드백으로 제거하고
+`balance` 자연 wrap 에 맡겨다.
+
+**lg(1024) 미만은 세로 스택한다.** 로고·타이틀이 왼쪽, 그래픽이 오른쪽인 가로 배치는 1920 기준 설계에서만
+의미가 있다. 운영자가 폰으로 미리보거나 관객이 링크를 직접 열었을 때 2단 가로 배치가 좌우를
+짜부라려 깨진다(실측: 390px 폭에서 한글이 5~7자마다 줄바뀜). 미만에서는 `flex-col`로 쌓고,
+그래픽 크기도 `coverGraphicMaxSm/MaxHSm`(패널 폭 비율 기준)으로 따로 둔다. 패널 어느 쪽에 있어도 30% 규칙이
+무의미해지기 때문이다.
+
+**lg 미만에서는 패널 여백도 줄인다**(`p-lg lg:p-4xl`). 48px 양쪽 여백을 그대로 두면 320px 폭에서
+내용 폭이 128px밖에 안 남았다. 1024 이상은 기존 48px 그대로라 검증된 1920 레이아웃은 영향 없다.
 
 **세 자산 모두 글래스 패널 "안"에 둔다.** 뒤에 두면 굴절과 blur 를 타서 캡슐 형태가 뭉개지고,
 라이브러리가 GlassRoot 직계 자식만 배경으로 잡는 구조라 중간 래퍼도 못 둔다. 로고·타이틀·그래픽은

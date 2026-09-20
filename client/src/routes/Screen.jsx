@@ -16,6 +16,10 @@ import {
 
 const ALPHA = 'ABCDEFGH';
 
+// Q4 전용 보조 캡션. Vote.jsx 의 TEXT_CAPTION 과 같은 문구다(SOURCE.md). 화면이 단일 번들이라
+// 중복 정의를 감수하고 있다. 질문이 늘어나면 이 값도 스키마 컬럼으로 올려야 한다.
+const TEXT_CAPTION = '내가 생각하는 미래의 대학은 ______이다.';
+
 // 넣은 것이 패널을 넘치면 줄여서 맞춤다. 계산식으로는 맞출 수 없다. 단어 수·글자 수·줄바꿈
 // 위치·선택지 개수가 매번 달라져서, 그려 놓고 실측해 줄이는 것만이 모든 경우를 덮는다.
 // --fit 는 이 요소 안 글자 크기에 곱해진다. 8번까지만 줄인다(0.92^8 = 0.51배).
@@ -71,16 +75,19 @@ function QrPlate({ url, size }) {
 }
 
 // 오프닝(커버). 결과 패널과 같은 배경·Glass 를 그대로 쓰고 내용만 다르다.
-// 브랜드 자산 3개를 올린다. 로고·타이틀은 왼쪽 열, 그래픽은 오른쪽 열이다.
+// 브랜드 자산 3개를 올린다. lg(1024) 이상은 로고·타이틀이 왼쪽, 그래픽이 오른쪽이고,
+// 미만은 세로로 쌓은다. /screen 은 1920 기준 설계지만 운영자가 폰으로 미리보거나 관객이
+// 직접 링크를 열었을 때 좌우 2단이 맞붙아 깨지는 것을 막는다.
 // 세 자산 모두 글래스 패널 "안"에 둔다. 뒤에 두면 굴절·blur 를 타서 뚜렷해지고,
 // 라이브러리가 root 직계 자식만 배경으로 잡는 구조라 중간 래퍼도 못 둔다.
 // 등장은 QR 플레이트와 같은 rise-in(.plate-in, 320ms)을 재사용한다.
 function CoverPlate() {
   return (
-    <div className="plate-in flex flex-1 items-center gap-4xl">
-      <div className="flex min-w-0 flex-1 flex-col justify-center">
+    <div className="plate-in flex flex-1 flex-col items-center gap-2xl overflow-y-auto lg:flex-row lg:items-center lg:gap-4xl lg:overflow-visible">
+      <div className="flex w-full min-w-0 flex-col justify-center lg:flex-1">
         {/* 로고·타이틀은 오브젝트라 이미지로 둔다. 원본 색을 그대로 쓰지 않고
-            brandRamp 로 다시 칠한 산출물이다(scripts/brand-assets.mjs). */}
+            brandRamp 로 다시 칠한 산출물이다(scripts/brand-assets.mjs). 이 세션은 포럼 전체가 아니라
+            5모듈 하나라 로고·타이틀을 작게 쓰고 아래 모듈 태그로 위계를 보완한다. */}
         <img
           src="/images/brand/logo.svg"
           alt="UIA"
@@ -90,21 +97,25 @@ function CoverPlate() {
         <img
           src="/images/brand/title.svg"
           alt="2026 UIA x 한양대학교 NEXT IMPACT FORUM"
-          className="mt-2xl w-full object-contain object-left"
+          className="mt-4xl w-full object-contain object-left"
           style={{ maxWidth: layout.coverTitleMax }}
         />
-        <p className="mt-2xl text-screenEyebrowWide text-ink">INTERACTIVE SESSION</p>
-        <h1 className="balance mt-sub text-screenQuestion text-ink">
-          <Ko>청중과 함께 그려보는 / 미래의 대학</Ko>
+        {/* 모듈 태그 2행. 영어(작고 넓은 트래킹)은 태그, 한글(굵고 강조)은 실제 세션명이다.
+            둘 사이 간격을 명시적으로 둔다(mt-md). 기본 행간만으로는 둘이 붙어 보였다. */}
+        <p className="mt-4xl text-screenModuleEn text-ink">MODULE 05</p>
+        {/* 큐시트 대본 표기 그대로("인터렉티브"). 사회자 오프닝 대사와 글자를 맞춘다. */}
+        <p className="mt-md text-screenModuleKr text-ink">인터렉티브 세션</p>
+        <h1 className="balance mt-xl text-screenQuestion text-ink">
+          <Ko>청중과 함께 그려보는 미래의 대학</Ko>
         </h1>
       </div>
-      {/* 세로로 긴 그림이라 패널 높이를 기준으로 잡는다. 문자열이 아니라 장식이므로 alt 는 비운다. */}
+      {/* 세로로 긴 그림이라 패널 높이를 기준으로 잡는다. 문자열이 아니라 장식이므로 alt 는 비운다.
+          lg 미만(세로 스택)에서는 행 폭 기준 30% 규칙이 의미가 없어 별도 토큰(coverGraphicSm)을 쓴다. */}
       <img
         src="/images/brand/graphic.webp"
         alt=""
         aria-hidden="true"
-        className="min-h-0 shrink-0 self-center object-contain"
-        style={{ maxWidth: layout.coverGraphicMax, maxHeight: layout.coverGraphicMaxH }}
+        className="min-h-0 max-w-coverGraphicSm max-h-coverGraphicSm shrink-0 self-center object-contain lg:max-w-coverGraphic lg:max-h-coverGraphic"
       />
     </div>
   );
@@ -336,9 +347,15 @@ export function ScreenView({
   return (
     <GlassRoot
       background="/images/bg/ambient-screen.webp"
-      className="glass-root-fixed flex items-stretch justify-center p-4xl"
+      // lg(1024) 미만은 여백을 줄인다. p-4xl(48px)을 양쪽에 그대로 두면 320px 폭에서
+      // 내용 폭이 128px밖에 안 남아 한글이 5~7자마다 줄바뀜되고 그래픽이 스크롤 밖으로 밀렸다.
+      className="glass-root-fixed flex items-stretch justify-center p-lg lg:p-4xl"
     >
-      <Glass variant="screen" radius="screen" className="flex min-h-0 w-full max-w-screen flex-col p-4xl">
+      <Glass
+        variant="screen"
+        radius="screen"
+        className="flex min-h-0 w-full max-w-screen flex-col p-lg lg:p-4xl"
+      >
         {standby ? (
           <QrPlate key="standby" url={voteUrl} size={qrSize} />
         ) : cover ? (
@@ -350,9 +367,18 @@ export function ScreenView({
           // 선택지 카드가 스스로 줄어들려면 이 줄이 먼저 뚫려 있어야 한다(실측 22px 초과).
           <div key={`live-${question?.id ?? ''}`} className="enter flex min-h-0 flex-1 flex-col">
             <div className="flex items-start justify-between gap-2xl">
-              <h1 className="balance text-screenQuestion text-ink">
-                <Ko>{question?.title ?? ''}</Ko>
-              </h1>
+              <div className="min-w-0">
+                <h1 className="balance text-screenQuestion text-ink">
+                  <Ko>{question?.title ?? ''}</Ko>
+                </h1>
+                {isText ? (
+                  <p className="balance mt-sm text-screenMeta text-ink">
+                    {/* Ko 의 children 을 문자열+표현식+문자열로 나누면 배열로 들어가 String(array) 가
+                        쉼표로 이어붙인다(실측: “,내가...,” 으로 깨졌다). 하나의 문자열로 합쳐서 넘겨야 한다. */}
+                    <Ko>{`“${TEXT_CAPTION}”`}</Ko>
+                  </p>
+                ) : null}
+              </div>
               <span className="live-dot mt-md h-md w-md shrink-0 rounded-full bg-green" aria-label="실시간" />
             </div>
 

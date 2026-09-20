@@ -63,6 +63,10 @@ export const typography = {
   // 1행(한글)은 살짝, 2행(영문 대문자)은 더 넓게. 두 줄이 같은 크기와 색이되 자간으로만 위계를 나눈다.
   screenEyebrow: { size: 'clamp(20px, 1.6vw, 30px)', weight: 600, leading: 1.4, tracking: '0.02em' },
   screenEyebrowWide: { size: 'clamp(20px, 1.6vw, 30px)', weight: 600, leading: 1.4, tracking: '0.05em' },
+  // 커버 모듈 태그 2행. "우리는 포럼 전체가 아니라 5모듈"이라는 걸 표시하려고 추가했다.
+  // 영어(작고 넓은 트래킹)는 태그, 한글(굵고 좁은 트래킹)은 실제 세션명 강조다. 라벨과 헤드라인처럼 위계를 분리한다.
+  screenModuleEn: { size: 'clamp(15px, 1.2vw, 22px)', weight: 600, leading: 1.4, tracking: '0.1em' },
+  screenModuleKr: { size: 'clamp(22px, 2vw, 34px)', weight: 700, leading: 1.3, tracking: '-0.01em' },
 };
 
 // 8pt 기반
@@ -136,11 +140,16 @@ export const layout = {
   optionCardX: 'clamp(20px, 2vw, 40px)',
   optionCardY: 'clamp(12px, 1.2vw, 24px)',
 
-  // 표지 브랜드 자산. 로고·타이틀은 왼쪽 열, 그래픽은 오른쪽 열이다.
-  coverLogoMax: 'clamp(96px, 9vw, 190px)',
-  coverTitleMax: 'min(52vw, 820px)',
+  // 표지 브랜드 자산. 로고·타이틀은 왼쪽 열, 그래픽은 오른쪽 열이다(lg 1024 이상. 미만은 세로 스택).
+  // 이 세션은 포럼 전체가 아니라 5모듈 하나라서 로고·타이틀 크기를 줄이고 모듈 태그로 위계를 보완했다.
+  coverLogoMax: 'clamp(64px, 6vw, 130px)',
+  coverTitleMax: 'min(40vw, 600px)',
   coverGraphicMax: 'min(30%, 420px)',
   coverGraphicMaxH: '78vh',
+  // lg 미만(세로 스택)에서 쓰는 그래픽 크기. 가로폭 기준 30% 룰이 스택 레이아웃에서는 의미가 없어
+  // 컨테이너 자체 폭 비율로 다시 잡고, 세로는 텍스트 블록이 이미 많은 공간을 쓰므로 훨씬 낮게 둔다.
+  coverGraphicMaxSm: 'min(58%, 280px)',
+  coverGraphicMaxHSm: '26vh',
 
   qrRatio: 0.38, // 화면 짧은 변 대비 QR 크기
   // 클로징(홍보) 화면. 로고가 주인공이고 QR 은 보조라 대기 화면 QR 보다 작게 둔다.

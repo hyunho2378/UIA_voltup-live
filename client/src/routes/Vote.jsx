@@ -9,6 +9,11 @@ import { isSupabaseConfigured, fetchQuestion, fetchQuestions, submitVote } from 
 
 export const MAX_TEXT = 12;
 
+// Q4 전용 보조 캡션. 큐시트에 화면에 띄우는 문구가 질문과 빈칸 문장 둘이라 명시되어 있다(SOURCE.md).
+// 이 앱은 주관식 질문이 Q4 하나뿐이라 type 조건분기로 충분하다. 질문마다 다른 캡션이 필요해지면
+// 그때 스키마에 컬럼을 추가한다.
+export const TEXT_CAPTION = '내가 생각하는 미래의 대학은 ______이다.';
+
 function Radio({ on }) {
   return (
     <span
@@ -66,6 +71,13 @@ export function VoteView({
             <h1 className="balance mt-md text-question text-ink">
               <Ko>{question?.title ?? ''}</Ko>
             </h1>
+            {isText ? (
+              <p className="balance mt-sm text-option text-ink">
+                {/* Ko 의 children 을 문자열+표현식+문자열로 나누면 배열로 들어가 String(array) 가 쉼표로 이어붙인다.
+                    (실측: “,내가...,” 으로 깨졌다). 하나의 문자열로 합쳐서 넘겨야 한다. */}
+                <Ko>{`“${TEXT_CAPTION}”`}</Ko>
+              </p>
+            ) : null}
 
             {state === 'waiting' ? (
               ended ? <p className="mt-panel text-body text-ink">오늘 세션이 종료되었어요</p> : null
