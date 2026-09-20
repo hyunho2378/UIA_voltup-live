@@ -283,7 +283,72 @@ function OptionList({ options }) {
   );
 }
 
-// highlight: 강조할 표 수. 단독 1등일 때만 숫자가 오고 동점·0표면 null 이라 blue 가 하나도 없다.
+// 척도 질문(Q1) 결과 공개 전. 선택지가 아니라 서잌 끝의 설명 2개뿐이라 안 채운 트랙만 보여준다.
+function ScaleHint({ options }) {
+  const minLabel = options[0]?.label ?? '';
+  const maxLabel = options[options.length - 1]?.label ?? '';
+  return (
+    <div className="flex flex-1 flex-col justify-center" style={{ marginTop: layout.screenChartTop }}>
+      <div
+        className="w-full overflow-hidden rounded-bar bg-barTrack"
+        style={{ height: layout.screenBarHeight }}
+      />
+      <div className="mt-xl flex items-center justify-between gap-2xl">
+        <p className="text-screenLabel text-ink">
+          <Ko>{minLabel}</Ko>
+        </p>
+        <p className="text-screenLabel text-ink">
+          <Ko>{maxLabel}</Ko>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// 척도 결과. 1~5 사이 9개 눈금을 다 보여주는 분포다. 색 규칙은 막대와 같다: 단독 최대 눈금만 blue, 동점·0표면 전부 inkSoft.
+function ScaleResult({ items, average, minLabel, maxLabel }) {
+  const maxCount = Math.max(1, ...items.map((it) => it.count ?? 0));
+  const top = Math.max(0, ...items.map((it) => it.count ?? 0));
+  const leaders = items.filter((it) => (it.count ?? 0) === top).length;
+  const highlight = top > 0 && leaders === 1 ? top : null;
+  return (
+    <div className="flex flex-1 flex-col justify-center" style={{ marginTop: layout.screenChartTop }}>
+      <p className="flex items-baseline text-screenPct text-ink tabular" style={{ gap: layout.chartValueGap }}>
+        평균 {average}
+        <span className="text-screenVotes text-ink">점</span>
+      </p>
+      <div className="mt-xl flex flex-1 items-end gap-md" style={{ maxHeight: layout.chartRowMax }}>
+        {items.map((it) => {
+          const count = it.count ?? 0;
+          const h = (count / maxCount).toFixed(4);
+          const lead = highlight !== null && count === highlight;
+          return (
+            <div key={it.value} className="flex h-full flex-1 flex-col items-center justify-end gap-sm">
+              <div className="flex w-full flex-1 items-end overflow-hidden rounded-bar bg-barTrack">
+                <div
+                  className={`w-full rounded-bar ${lead ? 'bg-blue' : 'bg-inkSoft'}`}
+                  style={{ height: '100%', transform: `scaleY(${h})`, transformOrigin: 'bottom' }}
+                />
+              </div>
+              {Number.isInteger(it.value) ? (
+                <span className="text-screenKey text-ink tabular">{it.value}</span>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-md flex items-center justify-between gap-2xl">
+        <p className="text-screenVotes text-ink">
+          <Ko>{minLabel}</Ko>
+        </p>
+        <p className="text-screenVotes text-ink">
+          <Ko>{maxLabel}</Ko>
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function BarChart({ items, totalVotes, highlight, isText }) {
   return (
     <div className="flex flex-1 flex-col justify-center" style={{ marginTop: layout.screenChartTop }}>
@@ -373,6 +438,7 @@ export function ScreenView({
   const leaders = items.filter((it) => (it.count ?? 0) === top).length;
   const highlight = top > 0 && leaders === 1 ? top : null;
   const isText = question?.type === 'text';
+  const isScale = question?.type === 'scale';
   // 결과 공개 전에 보여줄 선택지. 집계가 아니라 질문 자체의 선택지라 question 에서 가져온다.
   const choiceOptions =
     question?.type === 'choice'
@@ -380,6 +446,7 @@ export function ScreenView({
       : [];
   // 객관식은 언제나 막대, 주관식은 언제나 워드클라우드다.
   // 주관식을 막대로 보는 경우가 없어 뷰 전환 자체를 없앴다(results_view 는 스키마에 남아 있다).
+  const scaleOptions = isScale ? [...(question.options ?? [])].sort((a, b) => a.order_no - b.order_no) : [];
   const cloud = isText;
 
   return (
@@ -409,7 +476,7 @@ export function ScreenView({
                 <h1 className="balance text-screenQuestion text-ink">
                   <Ko>{question?.title ?? ''}</Ko>
                 </h1>
-                {isText ? (
+                {isText && !(resultsVisible && items.length > 0) ? (
                   <p className="balance mt-sm text-screenMeta text-ink">
                     {/* Ko 의 children 을 문자열+표현식+문자열로 나누면 배열로 들어가 String(array) 가
                         쉼표로 이어붙인다(실측: “,내가...,” 으로 깨졌다). 하나의 문자열로 합쳐서 넘겨야 한다. */}
@@ -424,11 +491,20 @@ export function ScreenView({
               <>
                 {cloud ? (
                   <WordCloud items={items} highlight={highlight} />
+                ) : isScale ? (
+                  <ScaleResult
+                    items={items}
+                    average={matched?.average ?? 0}
+                    minLabel={scaleOptions[0]?.label ?? ''}
+                    maxLabel={scaleOptions[scaleOptions.length - 1]?.label ?? ''}
+                  />
                 ) : (
                   <BarChart items={items} totalVotes={totalVotes} highlight={highlight} isText={isText} />
                 )}
                 <p className="mt-xl text-screenMeta text-ink tabular">{liveCount}명 참여</p>
               </>
+            ) : isScale ? (
+              <ScaleHint options={scaleOptions} />
             ) : choiceOptions.length > 0 ? (
               <OptionList options={choiceOptions} />
             ) : null}

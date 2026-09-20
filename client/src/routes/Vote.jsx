@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import GlassRoot from '../components/glass/GlassRoot.jsx';
 import Glass from '../components/glass/Glass.jsx';
 import GlassButton from '../components/glass/GlassButton.jsx';
 import Ko from '../components/glass/Ko.jsx';
 import Offline from './Offline.jsx';
+import { layout } from '../tokens.js';
 import { useSession } from '../lib/session-context.jsx';
 import { isSupabaseConfigured, fetchQuestion, fetchQuestions, submitVote } from '../lib/supabase.js';
 
@@ -13,6 +14,104 @@ export const MAX_TEXT = 12;
 // 이 앱은 주관식 질문이 Q4 하나뿐이라 type 조건분기로 충분하다. 질문마다 다른 캡션이 필요해지면
 // 그때 스키마에 컬럼을 추가한다.
 export const TEXT_CAPTION = '내가 생각하는 미래의 대학은 ______이다.';
+
+// 척도 슬라이더(Q1). 1~5 사이를 0.5 단위(9개 눈금)로만 음직인다.
+// 드래그 중 위치를 매프레임 바꾸는 건 CSS 애니메이션이 아니라 사용자 제스처에 직접 반응하는
+// direct manipulation 이라 AGENTS 1절(layout 유발 애니메이션 금지) 대상이 아니다. 임의 select/range 를 쓰지 않고
+// 커스텀으로 만든다(ROUTES 귷칙: 네이티브 컴포넌트 노출 금지).
+function Slider({ value, onChange, minLabel, maxLabel }) {
+  const trackRef = useRef(null);
+  const draggingRef = useRef(false);
+  const fraction = value === null ? 0 : (value - 1) / 4;
+
+  const valueFromClientX = (clientX) => {
+    const rect = trackRef.current.getBoundingClientRect();
+    const raw = (clientX - rect.left) / rect.width;
+    const clamped = Math.min(1, Math.max(0, raw));
+    // 1~5 사이 9개 눈금(0.5 단위) 중 가장 가까운 값으로 스냵한다.
+    const snapped = Math.round(clamped * 8) / 8;
+    return Math.round((1 + snapped * 4) * 10) / 10; // 부동소수점 오차 방지(3.0000004 방지)
+  };
+
+  const handlePointerDown = (e) => {
+    trackRef.current.setPointerCapture(e.pointerId);
+    draggingRef.current = true;
+    onChange(valueFromClientX(e.clientX));
+  };
+  const handlePointerMove = (e) => {
+    if (!draggingRef.current) return;
+    onChange(valueFromClientX(e.clientX));
+  };
+  const handlePointerUp = (e) => {
+    draggingRef.current = false;
+    trackRef.current.releasePointerCapture(e.pointerId);
+  };
+  const handleKeyDown = (e) => {
+    const base = value ?? 3;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') onChange(Math.min(5, base + 0.5));
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') onChange(Math.max(1, base - 0.5));
+    else if (e.key === 'Home') onChange(1);
+    else if (e.key === 'End') onChange(5);
+  };
+
+  return (
+    <div className="mt-panel">
+      <div
+        ref={trackRef}
+        role="slider"
+        tabIndex={0}
+        aria-valuemin={1}
+        aria-valuemax={5}
+        aria-valuenow={value ?? undefined}
+        aria-valuetext={value !== null ? `${value}점` : '선택 안 함'}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onKeyDown={handleKeyDown}
+        // 시각 트랙은 8px로 얺지만 터치 히트 영역은 touchMin(44px) 그대로 쓴다.
+        className="relative flex touch-none items-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-blue"
+        style={{ minHeight: layout.touchMin }}
+      >
+        <div
+          className="relative w-full overflow-hidden rounded-full bg-optionFill"
+          style={{ height: layout.sliderTrackHeight }}
+        >
+          {/* BarChart 의 막대 성장과 같은 패턴: scaleX 만 쓴다(transform, 레이아웃 속성 아님). */}
+          <div
+            className="h-full w-full rounded-full bg-blue"
+            style={{ transform: `scaleX(${fraction})`, transformOrigin: 'left' }}
+          />
+        </div>
+        {value !== null ? (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute rounded-full border-2 border-blue bg-white"
+            style={{
+              width: layout.sliderThumbSize,
+              height: layout.sliderThumbSize,
+              top: '50%',
+              left: `${fraction * 100}%`,
+              transform: 'translate(-50%, -50%)',
+            }}
+          />
+        ) : null}
+      </div>
+      <div className="mt-sm flex items-start justify-between gap-md">
+        <p className="text-caption text-ink">
+          <Ko>{minLabel}</Ko>
+        </p>
+        <p className="text-caption text-ink">
+          <Ko>{maxLabel}</Ko>
+        </p>
+      </div>
+      {value !== null ? (
+        <p className="mt-md text-center text-question text-ink tabular">{value}</p>
+      ) : (
+        <p className="mt-md text-center text-caption text-ink">드래그하거나 탭해서 선택하세요</p>
+      )}
+    </div>
+  );
+}
 
 function Radio({ on }) {
   return (
@@ -41,14 +140,17 @@ export function VoteView({
   state = 'waiting',
   choice = null,
   text = '',
+  scale = null,
   notice = '',
   ended = false,
   onChoice = () => {},
   onText = () => {},
+  onScale = () => {},
   onSubmit = () => {},
 }) {
   const isText = question?.type === 'text';
-  const ready = isText ? text.trim().length > 0 : Boolean(choice);
+  const isScale = question?.type === 'scale';
+  const ready = isText ? text.trim().length > 0 : isScale ? scale !== null : Boolean(choice);
   const options = [...(question?.options ?? [])].sort((a, b) => a.order_no - b.order_no);
 
   return (
@@ -81,6 +183,13 @@ export function VoteView({
 
             {state === 'waiting' ? (
               ended ? <p className="mt-panel text-body text-ink">오늘 세션이 종료되었어요</p> : null
+            ) : isScale ? (
+              <Slider
+                value={scale}
+                onChange={onScale}
+                minLabel={options[0]?.label ?? ''}
+                maxLabel={options[options.length - 1]?.label ?? ''}
+              />
             ) : isText ? (
               <div className="mt-panel">
                 <input
@@ -140,6 +249,7 @@ export default function Vote() {
   const [total, setTotal] = useState(0);
   const [choice, setChoice] = useState(null);
   const [text, setText] = useState('');
+  const [scale, setScale] = useState(null);
   const [voted, setVoted] = useState(false);
   const [notice, setNotice] = useState('');
 
@@ -156,6 +266,7 @@ export default function Vote() {
     setQuestion(null);
     setChoice(null);
     setText('');
+    setScale(null);
     setVoted(false);
     setNotice('');
 
@@ -168,7 +279,8 @@ export default function Vote() {
   }, [qid]);
 
   const isText = question?.type === 'text';
-  const ready = isText ? text.trim().length > 0 : Boolean(choice);
+  const isScale = question?.type === 'scale';
+  const ready = isText ? text.trim().length > 0 : isScale ? scale !== null : Boolean(choice);
   const open = Boolean(session?.voting_open);
   const ended = session?.status === 'ended';
   // 화면 상태 우선순위. ended 를 voted 보다 먼저 본다.
@@ -181,8 +293,9 @@ export default function Vote() {
     if (!ready) return;
     const res = await submitVote({
       questionId: question.id,
-      optionId: isText ? null : choice,
+      optionId: isText || isScale ? null : choice,
       textValue: isText ? text.trim() : null,
+      scaleValue: isScale ? scale : null,
     });
     if (res.ok) {
       setVoted(true);
@@ -207,10 +320,12 @@ export default function Vote() {
       state={state}
       choice={choice}
       text={text}
+      scale={scale}
       notice={notice}
       ended={ended}
       onChoice={setChoice}
       onText={setText}
+      onScale={setScale}
       onSubmit={onSubmit}
     />
   );

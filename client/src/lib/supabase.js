@@ -109,12 +109,12 @@ export async function fetchLiveCount(questionId) {
 }
 
 // 투표 제출. 서버 unique(question_id, voter_key) 로 중복 차단. 23505 = 이미 투표함.
-export async function submitVote({ questionId, optionId = null, textValue = null }) {
+export async function submitVote({ questionId, optionId = null, textValue = null, scaleValue = null }) {
   if (!supabase) return { ok: false, reason: 'not_configured' };
   const voter_key = getVoterKey();
   const { error } = await supabase
     .from('votes')
-    .insert({ question_id: questionId, option_id: optionId, text_value: textValue, voter_key });
+    .insert({ question_id: questionId, option_id: optionId, text_value: textValue, scale_value: scaleValue, voter_key });
   if (error) {
     if (error.code === '23505') return { ok: false, reason: 'duplicate' };
     return { ok: false, reason: 'error', error };

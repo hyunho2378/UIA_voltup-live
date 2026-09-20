@@ -109,6 +109,9 @@ export const layout = {
   touchMin: '44px',
   optionMinHeight: '56px',
   buttonMinHeight: '54px',
+  // Q1 척도 슬라이더. 시각 트랙은 얇게, 히트 영역은 손가락 터치 최소값(touchMin)을 그대로 쓴다.
+  sliderTrackHeight: '8px',
+  sliderThumbSize: '28px',
   // 대형화면 차트 (1920 기준, 4K 까지 유동)
   // 차트: 라벨 열은 max-content. auto 로 두면 1fr 막대에 밀려 min-content 로 눌리고
   // 한글이 한 글자씩 줄바꿈된다. 라벨이 길면 막대가 좁아지므로 선택지 문구는 짧게 쓴다.
