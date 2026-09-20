@@ -43,9 +43,24 @@ function QrPlate({ url, size }) {
   );
 }
 
+// 오프닝(커버). 결과 패널과 같은 배경·Glass·좌측 정렬을 그대로 쓴다. 모듈 시작을 알리는 용도라
+// 부제·버튼·QR·초록 점 전부 없다. 등장은 QR 플레이트와 같은 rise-in(.plate-in, 320ms)을 재사용한다.
+// 사회자 페이스에 맞춰 어드민이 수동으로 다음 상태로 넘긴다(자동 타이머 없음).
+function CoverPlate() {
+  return (
+    <div className="plate-in flex flex-1 flex-col justify-center">
+      <p className="text-screenEyebrow text-ink">코리아 넥스트 임팩트 포럼</p>
+      <p className="text-screenEyebrowWide text-ink">INTERACTIVE SESSION</p>
+      <h1 className="balance mt-sub text-screenQuestion text-ink">
+        <Ko>청중과 함께 그려보는 / 미래의 대학</Ko>
+      </h1>
+    </div>
+  );
+}
+
 // 같은 집계를 다르게 배치하는 뷰일 뿐이다. 배경도 보더도 없다. 글래스 위에 텍스트만 얹는다.
 // 위계는 크기로만 만든다. 색은 ink 단색이고 최다 단어만 blue 다.
-function WordCloud({ items }) {
+function WordCloud({ items, highlight }) {
   const top = Math.max(1, ...items.map((it) => it.count ?? 0));
   const words = items.slice(0, layout.cloudWords);
 
@@ -73,7 +88,7 @@ function WordCloud({ items }) {
         return (
           <span
             key={w.word}
-            className={`cloud-word ${count === top ? 'text-blue' : 'text-ink'}`}
+            className={`cloud-word ${highlight !== null && count === highlight ? 'text-blue' : 'text-ink'}`}
             style={{
               // clamp(최소, 최대 * sqrt(비율), 최대). 꼬리 단어는 최소값에 붙고 1등만 최대값에 닿는다.
               fontSize: `clamp(${min}, calc(${layout.cloudMax} * ${fit} * ${r}), ${max})`,
@@ -90,7 +105,8 @@ function WordCloud({ items }) {
   );
 }
 
-function BarChart({ items, totalVotes, top, isText }) {
+// highlight: 강조할 표 수. 단독 1등일 때만 숫자가 오고 동점·0표면 null 이라 blue 가 하나도 없다.
+function BarChart({ items, totalVotes, highlight, isText }) {
   return (
     <div className="flex flex-1 flex-col justify-center" style={{ marginTop: layout.screenChartTop }}>
       {/* 단일 grid. 행마다 독립 grid 를 쓰면 라벨 열 폭이 제각각이라 막대 시작점이 어긋난다.
@@ -109,7 +125,7 @@ function BarChart({ items, totalVotes, top, isText }) {
         {items.map((it, i) => {
           const count = it.count ?? 0;
           const pct = totalVotes ? Math.round((count / totalVotes) * 100) : 0;
-          const lead = count === top && top > 0;
+          const lead = highlight !== null && count === highlight;
           const line = i ? 'border-t border-rowLine' : '';
           return (
             <div key={it.option_id ?? it.word} className="contents">
@@ -158,6 +174,7 @@ export function ScreenView({
   results,
   liveCount = 0,
   standby = false,
+  cover = false,
   resultsVisible = true,
   resultsView = 'bars',
   voteUrl = '',
@@ -168,7 +185,11 @@ export function ScreenView({
   const matched = visibleResults(question, results);
   const items = matched?.items ?? [];
   const totalVotes = items.reduce((sum, it) => sum + (it.count ?? 0), 0);
+  // 강조는 "단독 1등"일 때만 한다. 동점이면 전부 비1등 색으로 두어 1등이 없다는 사실을 색으로 드러낸다.
+  // 0표(전부 0)도 같은 취급이라 blue 는 0개다.
   const top = Math.max(0, ...items.map((it) => it.count ?? 0));
+  const leaders = items.filter((it) => (it.count ?? 0) === top).length;
+  const highlight = top > 0 && leaders === 1 ? top : null;
   const isText = matched?.type === 'text';
   // 객관식은 뷰 설정과 무관하게 언제나 막대다. 워드클라우드는 주관식에만 의미가 있다.
   const cloud = isText && resultsView === 'cloud';
@@ -178,6 +199,8 @@ export function ScreenView({
       <Glass variant="screen" radius="screen" className="flex w-full max-w-screen flex-col p-4xl">
         {standby ? (
           <QrPlate key="standby" url={voteUrl} size={qrSize} />
+        ) : cover ? (
+          <CoverPlate key="cover" />
         ) : (
           <div key={`live-${question?.id ?? ''}`} className="enter flex flex-1 flex-col">
             <div className="flex items-start justify-between gap-2xl">
@@ -190,9 +213,9 @@ export function ScreenView({
             {resultsVisible && items.length > 0 ? (
               <>
                 {cloud ? (
-                  <WordCloud items={items} />
+                  <WordCloud items={items} highlight={highlight} />
                 ) : (
-                  <BarChart items={items} totalVotes={totalVotes} top={top} isText={isText} />
+                  <BarChart items={items} totalVotes={totalVotes} highlight={highlight} isText={isText} />
                 )}
                 <p className="mt-xl text-screenMeta text-ink tabular">{liveCount}명 참여</p>
               </>
@@ -222,17 +245,42 @@ export default function Screen() {
 
     // 이전 질문의 fetch 가 뒤늦게 도착해 새 질문 위에 덮어쓰는 걸 막는다.
     let alive = true;
-    fetchQuestion(qid).then((v) => alive && setQuestion(v));
-    fetchResults(qid).then((v) => alive && setResults(v));
-    fetchLiveCount(qid).then((v) => alive && setLiveCount(v));
 
-    // broadcast 는 유실될 수 있다. 구독 payload 로 갱신하되 진입과 재연결 시 위에서 보정한다.
+    // 초기 진입과 재연결 보정이 같은 함수를 쓴다. 따로 두면 한쪽만 고쳐진다.
+    // catch 가 없으면 조회가 한 번 실패했을 때 복구 계기가 없다. 특히 0표 질문은 broadcast 가
+    // 아예 발생하지 않아 화면이 빈 채로 남는다. 1회 재시도까지 여기서 책임진다.
+    const sync = (retry = 1) => {
+      Promise.all([fetchQuestion(qid), fetchResults(qid), fetchLiveCount(qid)])
+        .then(([q, r, c]) => {
+          if (!alive) return;
+          setQuestion(q);
+          setResults(r);
+          setLiveCount(c);
+        })
+        .catch(() => {
+          if (alive && retry > 0) setTimeout(() => sync(retry - 1), 1000);
+        });
+    };
+    sync();
+
+    // broadcast 는 유실될 수 있다. 구독 payload 로 갱신하되 진입과 재연결 시 RPC 로 보정한다.
     // 채널 정리가 늦어 이전 results:{oldQid} 가 도착할 수 있어 question_id 로 거른다.
-    const off = subscribeResults(qid, (p) => {
-      if (!acceptsBroadcast(qid, p)) return;
-      setResults(p.results);
-      if (typeof p.live_count === 'number') setLiveCount(p.live_count);
-    });
+    // 재연결 보정이 없으면 끊긴 동안 들어온 표가 영영 화면에 안 올라온다(재현: DB 4표 / 화면 1표 고정).
+    let joins = 0;
+    const off = subscribeResults(
+      qid,
+      (p) => {
+        if (!acceptsBroadcast(qid, p)) return;
+        setResults(p.results);
+        if (typeof p.live_count === 'number') setLiveCount(p.live_count);
+      },
+      (status) => {
+        if (status !== 'connected') return;
+        joins += 1;
+        if (joins === 1) return; // 최초 조인은 위 sync 가 이미 보정했다
+        sync();
+      },
+    );
     return () => {
       alive = false;
       off();
@@ -245,6 +293,7 @@ export default function Screen() {
       results={results}
       liveCount={liveCount}
       standby={session?.status === 'standby'}
+      cover={session?.status === 'cover'}
       resultsVisible={Boolean(session?.results_visible)}
       resultsView={session?.results_view ?? 'bars'}
       voteUrl={import.meta.env.VITE_VOTE_SHORT_URL || `${window.location.origin}/vote`}

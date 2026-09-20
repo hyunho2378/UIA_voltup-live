@@ -76,6 +76,14 @@ React 18 + Vite + Tailwind(tokens override) + Supabase. 프론트와 serverless 
 
 DevControlPanel, `/preview`, `src/mock/`, `/__dev__/session-control` 은 전부 `import.meta.env.DEV` 게이트와 `apply:'serve'` 플러그인 안에 있어 프로덕션 번들에 문자열조차 남지 않는다. 배포 전 `npm run build` 후 `dist` grep 으로 매번 확인한다.
 
+## Supabase 정지 방지
+
+무료 티어는 며칠간 활동이 없으면 프로젝트를 자동 정지한다. `vercel.json` 의 Cron 이 매일 03:00 UTC 에 `GET /api/keep-alive` 를 호출해 `sessions` 를 read 한다. Vercel Hobby(무료)는 Cron 이 하루 1회로 제한돼 이 주기로 잡았다.
+
+- 쓰기 없음. `SUPABASE_URL` / `SUPABASE_SECRET_KEY` 로 `sessions` 1행만 select.
+- 수동 확인: 배포 URL + `/api/keep-alive` 를 브라우저로 열어 `{"ok":true,"ts":...}` 확인.
+- Cron 자체 확인: Vercel 대시보드 → 프로젝트 → Cron Jobs 탭에서 활성 여부와 마지막 실행 로그.
+
 ## 환경변수
 
 `.env.example` 참고. `VITE_` 접두사가 붙은 값은 전부 브라우저 번들에 박힌다. 비밀에는 절대 붙이지 않는다.

@@ -14,7 +14,7 @@ voltup-live 백엔드 규약. 정본 SQL은 `supabase/migrations/`, 실행 편�
 |---|---|---|
 | `questions` | id, order_no(unique), type(choice/text), title | 질문 순서는 order_no |
 | `options` | id, question_id, order_no, label | unique(question_id, order_no) |
-| `sessions` | id, active_question_id, voting_open, results_visible, status(standby/live/ended), updated_at | 제어 행 1개만 운용 |
+| `sessions` | id, active_question_id, voting_open, results_visible, status(standby/live/ended/cover), updated_at | 제어 행 1개만 운용 |
 | `votes` | id, question_id, option_id, text_value, voter_key, created_at | unique(question_id, voter_key) |
 
 - `votes_one_answer` 체크: `option_id`와 `text_value`는 정확히 하나만 채운다.
@@ -63,13 +63,15 @@ anon(청중)에게 허용되는 것은 이것뿐이다.
 
 | 라우트 | WebSocket | 채널 |
 |---|---|---|
-| `/` `/vote` `/admin` `/admin/login` `/offline` `/404` | 1 | `session` |
+| `/` `/vote` `/admin/login` `/offline` `/404` | 1 | `session` |
+| `/admin` | 1 | `session` + `results:{qid}` (응답 수 실시간 표시) |
 | `/screen` | 1 | `session` + `results:{qid}` |
 | `/preview` | **0** | 없음 (SessionProvider 밖에서 그린다) |
 
 - **관객 1명 = 연결 1개.** 200명까지가 무료 티어 한도이고, 그 이상은 대형화면·어드민 몫까지 함께 밀린다.
 - `SessionProvider`는 App 하나에만 마운트된다. 라우트를 옮겨도 `session` 채널은 다시 열리지 않는다.
 - 질문이 바뀌면 `results:{oldQid}`를 `removeChannel` 하고 `results:{newQid}`를 연다. 동시에 2개가 되지 않는다.
+- 어드민도 `/screen` 과 같은 `results:{qid}` 를 구독한다. 응답 수를 질문 전환 시 1회만 조회하면 투표가 들어오는 동안 0 에서 움직이지 않기 때문이다. 어드민은 1명이라 연결 수에는 영향이 없다(같은 소켓 위 채널 1개 추가).
 - dev 에서는 React StrictMode 가 effect 를 두 번 돌려 `session` 이 join 2 / leave 1 로 관측된다.
   순증 채널은 1개이고 프로덕션 빌드에서는 join 1 / leave 0 이다. 누수가 아니다.
 - **부하 하네스는 가상 청중 1명당 클라이언트 1개 = 소켓 1개를 만든다.** N=400 스윕은 연결 400개를 실제로 쓴다.
@@ -100,3 +102,7 @@ anon(청중)에게 허용되는 것은 이것뿐이다.
 2. Project Settings > API 에서 URL / publishable key / secret key 복사 → `client/.env`.
 3. SQL Editor 에 `supabase/_ALL.sql` 전체 붙여넣고 Run.
 4. Database > Replication 에서 `supabase_realtime` publication 에 `sessions` 포함 확인. `votes`는 포함되면 안 된다.
+
+## 무료 티어 무활동 자동 정지
+
+며칠간 요청이 없으면 프로젝트가 자동 정지(pause)된다. `client/api/keep-alive.js` + Vercel Cron(`client/vercel.json`, 매일 03:00 UTC)이 `sessions`를 read only 로 찔러 활동을 유지한다. read only(쓰기 없음). 상세는 `client/README.md` "Supabase 정지 방지" 참고.

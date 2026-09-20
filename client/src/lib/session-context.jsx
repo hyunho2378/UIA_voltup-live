@@ -14,11 +14,20 @@ export function SessionProvider({ children }) {
   const [linkUp, setLinkUp] = useState(true);
   const [offline, setOffline] = useState(false);
   const timer = useRef(null);
+  const joins = useRef(0);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return undefined;
     fetchSession().then(setSession).catch(() => {});
-    return subscribeSession(setSession, setChannelStatus);
+    // 재연결 보정. 소켓이 끊긴 동안 일어난 sessions 변경은 채널을 다시 조인해도 재전송되지 않는다.
+    // 보정이 없으면 잠깐 끊겼던 폰이 마감된 질문을 계속 열어둔 채로 남는다(재현: 차단 20초 후에도 수렴 0).
+    // 두 번째 이후 SUBSCRIBED(=재조인)일 때만 현재 상태를 다시 읽는다. 최초 진입은 위 fetchSession 이 담당한다.
+    return subscribeSession(setSession, (status) => {
+      setChannelStatus(status);
+      if (status !== 'connected') return;
+      joins.current += 1;
+      if (joins.current > 1) fetchSession().then(setSession).catch(() => {});
+    });
   }, []);
 
   // 채널 subscribe 콜백만으로는 소켓이 끊긴 걸 못 잡는다(끊겨도 콜백이 안 온다).

@@ -2,6 +2,24 @@
 
 프로젝트: voltup-live (제5모듈 실시간 참여형 투표 앱)
 
+## 현재 상태 요약 (2026-09-20 전수 재검증 기준)
+
+**기능은 전부 들어가 있고 실제 구동으로 검증됐다. 행사 투입 가능 상태다.** 청중(`/vote`)·대형화면(`/screen`)·어드민(`/admin`)
+세 화면이 Supabase Realtime 으로 묶여 있고, 대형화면은 커버(오프닝)·대기(QR)·진행·결과(막대/워드클라우드)·종료
+다섯 상태를 어드민 버튼으로 전부 수동 제어한다. 전환은 전부 새로고침 없이 700ms 안쪽에 반영된다(실측).
+전체 사이클(대기→커버→질문→투표→결과→마감→주관식→워드클라우드→초기화→종료→복귀) 7단계 검증 전부 PASS,
+동시 투표 유실 0·중복 0, 콘솔 에러 0, 가로 스크롤 0, 금지 항목 grep 0건이다. DB 마이그레이션은 0008까지
+프로덕션에 적용 완료라 따로 할 일이 없다.
+
+**사람이 해야 할 일은 두 가지다.** (1) **Supabase 쿼터**. 09-02 부하 스윕(동시 연결 398/200)으로 유예 중이며
+10-04 전까지 스윕을 다시 돌리지만 않으면 09-28 새 청구 주기에 저절로 해제된다. 단 **행사 당일 동시 접속이
+200명을 넘으면 같은 초과가 재발해 요청이 402 로 떨어진다.** 예상 인원이 200 을 넘으면 행사 달만 Pro(월 $25)로
+올려야 한다. (2) **실문안 시드**. 현재 질문은 전부 `[더미]` 접두사 더미다. 확정 문안이 나오면 SOURCE.md 에
+원문 그대로 넣고 시드해야 한다. 그 외에 미구현 기능은 없다.
+
+참고: 이 대화에서 한때 거론된 **화면 간 이동 FAB(NavFab)와 F키 전체화면은 구현된 적이 없다**(코드·문서 grep 0건).
+IA.md · ROUTES.md 가 "세 화면은 서로 이동하지 않는다"를 명시한 설계라 의도된 미구현이다. 필요하면 별도 결정이 필요하다.
+
 ## 완료
 - 부트스트랩 문서 세트 확정: DESIGN / IA / COMPONENTS / PATTERNS / ROUTES / tokens.js / SESSION_HEADER
 - SETUP 실행: client 구조, Vite+Tailwind(토큰 override), vercel.json, .env.example, 라우트 자리표시. build 통과, 금지 항목 grep 0건
@@ -37,6 +55,12 @@
   쓰고 막대가 있던 자리만 바꾼다. 배경/캔버스/라이브러리 없이 DOM 텍스트 + sqrt 크기매핑 + flex 중앙배치
 - 0007 미적용 DB 배포 가드: results_view 컬럼이 없으면 그 필드만 빼고 재시도한다. 코드가 마이그레이션보다
   먼저 올라가도 질문 전환 같은 기본 제어가 죽지 않는다(가드 없을 땐 set_question 이 500 이었다)
+- **0007_results_view 프로덕션 DB 적용 완료(2026-09-19).** Supabase SQL Editor 에서 Run, `Success. No rows returned`.
+  `sessions.results_view` 기본값 `bars` 확인. 워드클라우드 토글이 실 DB 에서 동작한다
+- **재연결 보정 2건 추가(2026-09-19, 시뮬레이션이 찾은 실결함).** 소켓이 끊긴 구간의 변경은 재조인해도 다시 오지 않는다.
+  `session-context.jsx` 는 두 번째 이후 SUBSCRIBED 에서 `fetchSession`, `Screen.jsx` 는 같은 조건에서 `fetchResults`+`fetchLiveCount` 를 다시 읽는다
+- **시뮬레이션 잔여 3건 수정(2026-09-19).** 어드민 "세션 종료" 버튼(2단 확인), 어드민 응답 수 실시간화(results 채널 구독),
+  결과 강조를 "단독 1등"일 때만으로 변경(동점·0표는 blue 0개). 상세는 아래 "시뮬레이션 잔여 결함 수정" 절.
 
 ## 진행 중
 - **배포 준비 완료, 실키 미투입.** 리포는 커밋 가능 상태. 실키는 client/.env 에만 있고 커밋되지 않는다.
@@ -44,7 +68,7 @@
 - Vercel 환경변수 입력 대기(사람 몫): ADMIN_PASSCODE, ADMIN_COOKIE_SECRET, SUPABASE_URL, SUPABASE_SECRET_KEY.
 - /preview 와 DevControlPanel 은 DEV 전용이라 별도 제거 작업이 없다. RLS 를 푸는 dev 정책(0006)은 만들지 않았으므로 행사 전 되돌릴 DB 변경도 없다.
 - 마이그레이션 0001~0005 적용 완료(2026-09-02). flush_results 204 실측 확인.
-- **0006_remove_backup.sql 은 사람이 Supabase SQL Editor 에서 Run 해야 한다(미적용).** 비파괴 — status 값 정리 + CHECK 축소만.
+- **0006_remove_backup.sql 은 사람이 Supabase SQL Editor 에서 Run 해야 한다(미적용).** 비파괴. status 값 정리 + CHECK 축소만.
 - 결과 정합성 실측(2026-09-05, 로컬 dev + 프로덕션 DB): 질문 전환 중 218 샘플에서 "다른 질문 막대" 0건.
   다만 구버전으로 되돌려 같은 시퀀스를 돌려도 0건이었다. set_question 이 results_visible=false 로 내리기 때문에
   fetch 대기 구간이 가려진다. 코드상 결함(state 미초기화 + question_id 가드 없음)은 실재하지만
@@ -107,9 +131,9 @@
   앱이 아니다. 재발 방지: 스윕은 테스트 전용 프로젝트에서만, 그리고 중단 시에도 소켓을 닫도록 정리 경로 추가함.
 
 ## 다음 작업 (순서)
-0. **`supabase/migrations/0007_results_view.sql` 을 Supabase SQL Editor 에서 Run.** 비파괴(컬럼 추가만).
-   안 돌려도 앱은 막대 뷰로 정상 동작하지만 워드클라우드 토글은 501 로 막힌다.
-1. VITE_VOTE_SHORT_URL 확정 후 .env 와 Vercel 에 입력. 실기기 QR 스캔 1회.
+0. ~~0007_results_view Run~~ → 2026-09-19 적용 완료.
+0-1. ~~Supabase 조직 쿼터 초과 경고 확인~~ → 2026-09-19 원인 특정 완료. 아래 "Supabase 쿼터 초과 원인" 절.
+   **행사 날짜가 10/4 이후면 그대로 진행 가능. 다만 동시 접속 200명을 넘기면 같은 초과가 반복된다.**
 2. 배포 후 전 화면 재검증, 반응형 전 구간, 금지 항목 grep.
 3. 리허설 3회, 장애 대체안(short URL, offline 화면) 점검.
 4. 배포 실주소로 부하 스윕 1회 재측정(로컬 단일 IP 측정과 다를 수 있음).
@@ -206,3 +230,389 @@
 - 최대 동시 연결은 3개(admin, screen, voter)로 10개 미만이다. 부하 스윕은 실행하지 않았다.
 - 실행 전 votes 0행, 실행 후 votes 0행과 `standby`, `voting_open=false`, `results_visible=false`를 재확인했다.
 - 루트 `.gitignore`에 참고 폴더 3개를 추가하고 기존 추적분은 인덱스에서만 제거했다.
+
+## 브라우저 드라이브 검증 (2026-09-10)
+
+- 경로 A(Vite dev + DEV 제어)에서 Playwright Chromium으로 screen(1920×1080), mobile 3개(iPhone), DEV-admin을 구동했다.
+- S0~S9 전체 통과. 투표 열기와 결과 집계 증가를 새로고침 없이 확인했고, 중복 투표 409과 Q2 stale 제거, Q3 질문별 초기화, 종료/대기를 확인했다.
+- `client/test-artifacts/드라이브/`에 단계별 screen/mobile/admin 캡처와 `browser-drive-report.json`을 남겼다.
+- 최대 동시 연결 5개. 종료 시 votes 0, standby, voting_open=false, results_visible=false를 재확인했다.
+- 워드클라우드는 코드와 0007 마이그레이션은 있으나 프로덕션 DB에 `sessions.results_view`가 없어 생략됐다. 0007 Run 후 이 단계만 재검증한다.
+  → 2026-09-19 시뮬레이션에서 0007 적용 후 S11 로 재검증 완료.
+
+## 행사 전체 시뮬레이션 (2026-09-19)
+
+관리자 1 + 대형화면 1 + 청중 4 를 실제 브라우저 탭으로 동시에 띄워 행사 흐름 전체를 시연했다.
+산출물: `client/test-artifacts/simulation/` (스크린샷 75장, `SUMMARY.md`, `simulation-report.json`).
+
+- 실행 경로: 프로덕션 빌드(dist) + 실제 `client/api/*` 핸들러 + 실제 어드민 패스코드 로그인.
+  `vercel dev` 는 로그인이 필요해 같은 핸들러를 그대로 구동하는 하네스(`client/scripts/sim-server3.mjs`)로 대체했다.
+- 역할마다 오리진을 나눠(`admin/screen/v1~v8 .localhost`) 쿠키(voter_key)를 격리했다. DB 에서 voter_key 4종 확인.
+- 결과: 순차 15 + 동시성 6 + 오류 8 = **29단계 전부 PASS**(수정 후). 콘솔 에러 0, 페이지 예외 0, 가로 스크롤 0.
+- 최대 동시 연결 10개(기본 6 + 동시 진입 4). 부하 스윕은 돌리지 않았다.
+- 종료 후 votes 0행 / standby / voting_open false / results_visible false / results_view bars 확인.
+
+### 지연 시간 실측 (브라우저 안에서 DOM 변경 시각으로 측정)
+
+| 구간 | 측정값 |
+|---|---|
+| 질문 전환 → 대형화면 | 510ms |
+| 투표 열기 → 청중 4명 선택지 | 689~690ms |
+| 결과 공개 → 막대 | 733ms |
+| 투표 제출 → 대형화면 집계 증가 | 156ms |
+| 이 질문 초기화 → 화면 0표 | 329ms |
+| 4명 동시 제출 → 전원 완료 | 304ms (INSERT 시각 분포 19ms) |
+| 신규 4명 동시 진입 → 전원 렌더 | 705ms |
+| 대형화면 재연결 → 집계 보정 | 592ms |
+| 청중 재연결 → 세션 상태 수렴 | 1929ms |
+
+### 발견해 수정한 결함 (둘 다 순차 테스트로는 안 잡힌다)
+
+**D1 `client/src/routes/Screen.jsx`. 재연결 후 집계 미보정.**
+소켓을 강제로 끊고 그 사이에 3표를 넣자 DB 는 4행인데 화면은 1표에서 멈췄고 20초가 지나도 복구되지 않았다.
+results 채널 재조인 시 RPC 보정이 없었다(보정은 최초 마운트에만 있었다). `subscribeResults` 의 status 콜백을 받아
+두 번째 이후 SUBSCRIBED 에서 `fetchResults`+`fetchLiveCount` 를 다시 읽는다. 수정 후 592ms 만에 4표로 복구.
+
+**D2 `client/src/lib/session-context.jsx`. 재연결 후 세션 상태 미수렴.**
+청중 폰의 소켓이 끊긴 사이에 관리자가 마감하면 재연결 후에도 선택지 4개가 그대로 남아 "마감된 질문에 계속 투표할 수 있는 화면"이 됐다.
+유실된 sessions 변경은 재조인해도 재전송되지 않는다. 같은 방식으로 `fetchSession` 재조회를 넣었고 수정 후 1.9초 안에 대기 화면으로 수렴.
+
+처음 C4(관리자 연타)에서 "DB 는 마감인데 청중 4명은 열림"이 우연히 관측됐고, 소켓을 강제로 막는 케이스(C4b/C5b)로 결정적 재현에 성공했다.
+연타 자체는 결함이 아니었다(API 3연타 순서 보존, 최종 상태 = 마지막 명령).
+
+### 수정하지 않고 기록만 한 관측
+
+- 어드민 화면에 세션 종료(end) 버튼이 없다. end 액션과 청중·랜딩 종료 화면은 있지만 진입점이 없어 행사에서 쓰려면 버튼이 필요하다.
+- 어드민 "응답" 카운터는 active_question_id 가 바뀔 때만 조회한다. 투표가 들어오는 동안 0 에서 움직이지 않는다(IA 의 "응답 수 모니터"와 불일치).
+- 주관식 입력은 MAX_TEXT=12 로 잘린다. 80자 응답은 UI 경로로 만들 수 없어 상한 동작 자체를 검증했다(56자 타이핑 → 12자 저장).
+- 동점이면 최다값 막대가 전부 blue 가 된다(4파전에서 4개 모두). 뚜렷한 1등이 있으면 blue 1개 + inkSoft 나머지로 정상.
+- 시드 질문이 3개뿐이라 Q4 는 전체 초기화 후 Q1 을 재사용했다. 옵션 2개 질문도 없어 E5 는 주관식 2단어(2행) 대 객관식(4행)으로 비교했다.
+- E3 첫 시도에서 결과 공개 후 막대가 15초 안에 뜨지 않은 1회가 있었다. 같은 시퀀스를 두 번 재현했으나 재발하지 않았고 원인은 미확정이다.
+- 뷰포트는 전 역할이 1440x900 이다. 샌드박스에서 Playwright 브라우저 기동이 막혀 Aside 브라우저 탭을 썼고 탭별 뷰포트를 지정할 수 없다.
+  1920x1080 대형화면과 390x844 폰 뷰포트는 이번 실행에서 재현하지 못했다(2026-09-08 워드클라우드 실측, 2026-09-10 드라이브 기록이 대체 근거).
+
+## Supabase 무활동 정지 방지 (2026-09-18)
+
+- 무료 티어가 며칠간 무활동이면 프로젝트를 자동 정지한다는 우려 → `client/api/keep-alive.js`(read only, sessions 1행 select) + `client/vercel.json` Cron(`0 3 * * *`, 매일 UTC 03:00) 추가.
+- Vercel Hobby(무료)는 Cron 하루 1회 제한이라 이 주기로 잡았다. 쓰기 없음 확인(select 만).
+- 사람이 할 일: 배포 후 Vercel 대시보드 → Cron Jobs 탭에서 활성·첫 실행 로그 확인. 급하면 Supabase SQL Editor에서 `select 1;` 한 번 Run 하면 즉시 정지 카운트다운 리셋.
+
+
+## 시뮬레이션 잔여 결함 수정 (2026-09-19)
+
+2026-09-19 전체 시뮬레이션의 "기록만 한 관측" 중 행사 운영에 걸리는 3건을 고쳤다. 검증 산출물은 `client/test-artifacts/simulation/F-*.png`.
+
+### A. 어드민 세션 종료 버튼 (`client/src/routes/Admin.jsx`)
+
+end 액션은 `api/_lib/session-actions.js` 에 이미 있었고 청중·랜딩 종료 화면도 있었는데 어드민에 진입점이 없었다.
+초기화 그룹 아래 줄에 `세션 종료` 버튼을 넣었다. 되돌릴 수 없는 동작이라 전체 초기화와 같은 2단 확인이다
+(첫 클릭 → "한 번 더 누르면 세션 종료", 3초 뒤 자동 해제). 위험은 색이 아니라 위치와 여백(`mt-md`)으로 표시한다.
+완료하면 상태 패널에 "세션을 종료했어요"가 2초간 뜬다. 오른쪽 컨트롤 열이 6개 → 7개가 되어 질문 리스트를 `md:row-span-7` 로 맞췄다.
+
+**다시 시작 경로는 기존 "대기 화면" 버튼이다.** 실측: ended → "대기 화면" → `status=standby`, `voting_open=false`, `results_visible=false`, 대형화면 QR 복귀.
+
+### B. 어드민 응답 수 실시간화 (`client/src/routes/Admin.jsx`)
+
+원인: 응답 수를 `active_question_id` 가 바뀔 때만 `fetchLiveCount` 로 1회 조회했다. 투표가 들어오는 동안 0 에서 움직이지 않았다.
+수정: `/screen` 과 같은 `results:{qid}` broadcast 를 구독하고 payload 의 `live_count` 를 그대로 쓴다.
+중복 채널을 새로 만들지 않는다. 같은 소켓 위에 채널 1개가 늘고 어드민은 1명이라 청중 연결 수에는 영향이 없다(SUPABASE.md 채널표 갱신).
+재연결 보정도 Screen 과 같은 규칙으로 넣었다. 실측: 투표 3건에 어드민 응답 수가 306 / 305 / 302ms 만에 0→1→2→3 으로 갱신, 대형화면과 동시에 올랐다.
+
+### C. 동점일 때 강조 제거 (`client/src/routes/Screen.jsx`)
+
+기존: `count === max` 인 항목을 전부 blue 로 칠했다. 4파전이면 4개가 전부 blue 라 "1등 강조"라는 의도와 어긋났다.
+수정: 최다값을 가진 항목이 **정확히 1개일 때만** 그 항목을 blue 로 두고, 동점이면 전부 `inkSoft`(비1등과 같은 처리)다. 0표(전부 0)도 동점 취급이라 blue 가 0개다.
+`highlight`(강조할 표 수, 없으면 null)를 ScreenView 에서 한 번 계산해 BarChart 와 WordCloud 가 같이 쓴다. 워드클라우드도 단독 최다 단어일 때만 blue 다.
+실측: 1표 3파전 → blue 0 / inkSoft 4, 2표 단독 1등 → blue 1 / inkSoft 3, 0표 → blue 0, 워드클라우드 동점 → blue 0 · 단독 → "미래" 1개만 blue.
+
+### D. E3(막대가 안 뜬 1회) 진단
+
+**원인 특정 실패. 다만 같은 증상을 만들 수 있는 코드 취약점을 찾아 초기 경로를 보정 함수로 통일했다.**
+
+- 확인한 것: 최초 구독에서도 SUBSCRIBED 콜백은 온다. D1 의 재연결 보정은 `joins === 1`(최초 조인)을 건너뛰고 별도의 초기 fetch 에 의존하고 있었다.
+  즉 초기 진입과 재연결 보정이 **다른 코드 경로**였다.
+- 취약점: 초기 `fetchQuestion` / `fetchResults` / `fetchLiveCount` 세 개에 `.catch` 도 재시도도 없었다. 하나라도 실패하면 `results` 가 null 로 남는다.
+  **0표 질문은 broadcast 가 아예 발생하지 않으므로** 질문을 바꾸거나 소켓이 재연결되기 전까지 화면이 빈 채로 영구히 남는다. E3 은 정확히 0표 상태였다.
+- 수정: 초기 진입과 재연결 보정을 `sync()` 하나로 합치고 실패 시 1초 뒤 1회 재시도한다(Screen 의 질문·집계·참여 수, Admin 의 응답 수 동일).
+- 한계: E3 당시 네트워크 실패 로그를 남기지 않아 이 경로가 실제 원인이었는지는 확정할 수 없다. 재현 시도 2회 모두 재발하지 않았다.
+- **리허설에서 재발하면 볼 것:** (1) `/screen` 콘솔에 unhandled rejection 이 있는지, (2) Network 탭에서 `rpc/get_results` 가 실패했는지,
+  (3) 그 시점 `sessions.updated_at` 과 화면 상태가 어긋나는지. 필요하면 `sync()` 안에 성공·실패 타임스탬프 콘솔 로그를 임시로 넣고
+  (`import.meta.env.DEV` 게이트) 리허설 뒤 제거한다. 프로덕션 번들에는 로그를 남기지 않는다.
+
+### 검증 (수정 후, 프로덕션 빌드 + 실 /api 핸들러)
+
+| 항목 | 결과 |
+|---|---|
+| F-A 세션 종료 2단 확인 → ended → 대기 화면 복귀 | PASS |
+| F-B 어드민 응답 수 실시간(306/305/302ms) | PASS |
+| F-C1 동점 → blue 0 / inkSoft 4 | PASS |
+| F-C2 단독 1등 → blue 1 / inkSoft 3 | PASS |
+| F-C3 0표 → blue 0 | PASS |
+| F-C4 워드클라우드 동점 0 · 단독 1개 | PASS |
+| F-R1 [회귀] 대형화면 재연결 보정(D1) 1209ms | PASS |
+| F-R2 [회귀] 청중 재연결 수렴(D2) 1755ms | PASS |
+| F-R3 [회귀] 전환 stale 0 · 중복 차단 · 초기화 · 색 감사 · 콘솔 0 | PASS |
+
+종료 후 votes 0행 / standby / voting_open false / results_visible false 재확인.
+
+### 이번에도 안 고친 것
+
+- ~~이미 투표를 마친 청중은 세션을 종료해도 "투표했어요" 화면에 머문다~~ → 2026-09-19 수정(아래 "종료 상태 우선순위 수정" 절).
+- 뷰포트 1920/390 실측은 여전히 미확인이다. 샌드박스에서 브라우저 기동이 막혀 탭 뷰포트를 지정할 수 없다. 실기기·실제 창으로 눈으로 확인해야 한다.
+
+## 종료 상태 우선순위 수정 (2026-09-19)
+
+`/vote` 의 화면 상태 판정에서 `voted` 가 `ended` 보다 먼저 검사돼, 이미 투표한 청중은 세션이 종료돼도
+"투표했어요" 화면에 그대로 머물렀다. 새로고침해야만 종료 안내로 바뀌었다. 새로고침을 안전장치로 쓰지 않는다.
+
+`client/src/routes/Vote.jsx` 한 줄:
+
+```
+before: const state = voted ? 'done' : open && !ended ? 'voting' : 'waiting';
+after:  const state = ended ? 'waiting' : voted ? 'done' : open ? 'voting' : 'waiting';
+```
+
+우선순위는 ended → standby/마감 → voted → 투표 순이다. 마감(`voting_open=false`)은 예전 결정대로 대기와 같은 화면이라
+별도 분기가 아니다. 상태는 session-context 가 realtime 으로 주는 `session.status` 를 그대로 쓰므로 새로고침이 필요 없다.
+종료 문구는 기존 "오늘 세션이 종료되었어요" 하나를 그대로 쓴다. 투표한 사람과 안 한 사람에게 다른 문구를 만들지 않았다.
+
+### 검증 (프로덕션 빌드 + 실 /api 핸들러, 산출물 `client/test-artifacts/simulation/G-*.png`)
+
+| 항목 | 결과 |
+|---|---|
+| G-1 완료(done) 상태에서 종료 → 새로고침 없이 종료 화면. 완료 문구 사라짐, 선택지·버튼 0 | PASS |
+| G-1 미투표자도 동시에 종료 화면. 두 화면 문구가 완전히 동일 | PASS |
+| G-2 [회귀] 종료 → "대기 화면" → 종료 문구 해제, 투표자는 완료 화면 복귀, 다음 질문 전환 정상 | PASS |
+| G-3 종료 확정 클릭 기준 전환 지연 **투표 완료자 756ms / 미투표자 756ms** (동일) | PASS |
+| G-4 [회귀] 중복 차단 문구·마감 화면(대기와 동일)·전환 stale 0·색 감사·콘솔 0 | PASS |
+
+새로고침 없이 전환됐는지는 `performance.getEntriesByType("navigation").length === 1` 로 같이 확인했다.
+종료 후 votes 0행 / standby / voting_open false / results_visible false 재확인.
+
+## Supabase 쿼터 초과 원인 (2026-09-19 확인)
+
+대시보드 배너: "Organization exceeded its quota in the previous billing cycle (Realtime Connection Count Exceeded).
+Projects will be restricted from 04 Oct, 2026 if your organization remains over quota." 제한이 걸리면 요청이 402 로 떨어진다.
+
+### 초과 항목은 하나뿐이다
+
+| 항목 | 사용 / 한도 |
+|---|---|
+| **Realtime Concurrent Peak Connections** | **398 / 200 (199%)** |
+| Database Size | 0.028 / 0.5 GB (6%) |
+| Realtime Messages | 24,351 / 2,000,000 (1%) |
+| Egress | 0.032 / 5 GB (<1%) |
+| Storage / MAU / Edge Functions | 전부 0 |
+
+### 398 은 단 하루, 부하 스윕 날이다
+
+일자별 최대 동시 연결(차트 호버로 전부 읽음, 청구 주기 2026-08-28 ~ 09-28):
+
+| 날짜 | 피크 |
+|---|---|
+| **02 Sep** | **398** |
+| 03 Sep | 4 |
+| 04 Sep | 6 |
+| 05 Sep | 3 |
+| 06 Sep | 1 |
+| 07 Sep | 7 |
+| 08 Sep | 1 |
+| 10 Sep | 6 |
+| 11 Sep | 1 |
+| 18 Sep | 1 |
+| 19 Sep | 9 |
+
+09-02 는 `loadtest/vote-storm.mjs` 로 N=400 스윕을 돌린 날이다(위 "부하 실측 2026-09-02" 절과 일치).
+**앱이 만든 부하가 아니라 우리가 돌린 테스트 부하다.** 그 외 모든 날은 한 자릿수이고, 09-19 브라우저 시뮬레이션도 9 였다(탭 최대 10개와 일치).
+
+### 그래서 어떻게 되나
+
+- 이 지표는 누적이 아니라 **청구 주기 내 최댓값**이다. 09-28 에 새 주기가 시작되면 398 은 집계에서 빠진다.
+- 스윕을 다시 돌리지 않으면 09-28 ~ 10-04 구간 피크는 한 자릿수라 10-04 유예 종료 시점에 초과 상태가 아니게 된다.
+- **단, 행사 당일 동시 접속이 200 을 넘으면 같은 초과가 다시 난다.** 무료 티어 한도는 200 이고 우리 실측 안전선(280~300)은 한도가 아니라 기술적 한계였다.
+
+### 해야 할 일
+
+1. **부하 스윕을 이 프로젝트에서 다시 돌리지 않는다.** 꼭 필요하면 별도 테스트 프로젝트를 만든다.
+2. 09-29 경 대시보드에서 피크가 리셋됐는지, 배너가 사라졌는지 확인한다.
+3. 행사 예상 인원이 200 명을 넘으면 그 달만 Pro 로 올리거나(월 $25), 동시 접속을 200 아래로 관리한다.
+   초과 상태에서 유예가 끝나면 요청이 402 로 떨어져 행사 중 앱이 죽는다.
+
+근거 캡처: `client/test-artifacts/simulation/supabase-realtime-usage.png`
+
+## 커버(오프닝) 화면 추가 (2026-09-19)
+
+/screen 에 모듈 시작을 알리는 네 번째 상태 `cover` 를 추가했다. 대기(standby)/진행(live)/결과/종료(ended) 와 같은
+배경·Glass 패널·타이포 스케일·색을 전부 재사용하고, 새 디자인 언어를 만들지 않았다.
+
+### 원문 지시와 실제 코드가 어긋난 부분 (진행 전 확인)
+
+작업 프롬프트는 "eyebrow 클래스·문자열 그대로 재사용"을 전제했지만, 소스를 먼저 읽어보니 사실과 달랐다.
+
+- `client/src` 전체에서 `eyebrow` 검색 0건. 결과 화면(`ScreenView`)은 h1(질문) + 초록 점 + `N명 참여` 메타뿐이고
+  eyebrow/라벨 텍스트 자체가 없었다.
+- "코리아 넥스트 임팩트 포럼" / "INTERACTIVE SESSION" / "청중과 함께 그려보는 미래의 대학" 세 문구는 저장소
+  전체(`*.md`, `*.jsx`, `*.js`)에 0건. `SOURCE.md`도 없다. 이번에 처음 들어가는 문구다.
+- `tokens.js` typography 전체를 봐도 양수 자간(letter-spacing) 토큰이 없다. 전부 `0` 아니면 음수
+  (`-0.01em`, `-0.02em`)다. 요청한 "0.04~0.06em" 라벨톤 자간은 재사용할 게 없었다.
+
+문구는 프롬프트가 명시한 최종 텍스트이므로 그대로 썼다(추측 아님). eyebrow 타이포는 프로젝트의 기존 확장 절차
+(새 토큰 필요 시 tokens.js 추가 + DESIGN.md 동시 갱신)를 따라 `screenEyebrow` / `screenEyebrowWide` 두 역할을
+새로 추가했다. 크기·leading은 이미 20m 프로젝터 가독 검증이 끝난 `screenMeta`와 완전히 동일한 스케일을 그대로
+가져왔고, 서로 다른 값은 tracking(0.02em / 0.05em) 하나뿐이다. HIG 타이포 규율("아주 작은 텍스트는 약간 양수
+tracking")에 부합한다.
+
+### 재사용한 기존 것 (새로 안 만든 것)
+
+| 항목 | 재사용 소스 |
+|---|---|
+| 배경 | `GlassRoot background="/images/bg/ambient-screen.webp"` (standby/결과와 100% 동일) |
+| 패널 | `Glass variant="screen" radius="screen"` (standby/결과와 100% 동일) |
+| 좌측 정렬 | 기존 결과 블록의 기본 정렬(QR만 예외로 중앙정렬이던 규칙 그대로 유지, 커버는 새 예외 안 만듦) |
+| 등장 모션 | `.plate-in`(rise-in, opacity 0→1 + translateY(8px)→0, durBase 320ms, easeOut). QR 플레이트가 쓰는 것과 동일 클래스, 새 keyframe·새 duration 0개 |
+| reduced-motion 폴백 | 전역 `@media (prefers-reduced-motion: reduce)` 규칙이 `*` 셀렉터로 이미 `.plate-in`을 포함해 전체 애니메이션에 걸려 있다. 새 코드 없이 자동 상속 |
+| 타이틀 타이포·<Ko>·balance | `text-screenQuestion` + `<Ko>` + `balance`. 결과 화면 질문과 완전히 동일 |
+| eyebrow와 타이틀 사이 간격 | `spacing.sub`(10px, "제목과 부제 사이" 역할, Landing.jsx/Offline.jsx 에서 이미 쓰는 값) |
+| 색 | `colors.ink` 하나만. 새 색 0개 |
+
+### 새로 만든 것 (2개, 이유는 위 "원문과 어긋난 부분" 참고)
+
+- `tokens.js`: `typography.screenEyebrow`, `typography.screenEyebrowWide`. 크기 스케일은 screenMeta 재사용, 다른 건 tracking 값뿐.
+- dist 빌드에서 생성된 tailwind 유틸리티 클래스 `text-screenEyebrow`, `text-screenEyebrowWide` (tokens.js 값에서 자동 파생, 컴포넌트에 하드코딩 없음).
+
+### 2줄 타이틀
+
+"청중과 함께 그려보는 미래의 대학"(16자)은 `screenQuestion`의 최대 크기(56px) 기준으로도 1920px 패널 폭에
+한 줄로 들어간다(실측: 1440px 창에서 `h1` 렌더 결과 1줄). `text-wrap:balance` 만으로는 프롬프트가 지정한
+"청중과 함께 그려보는 / 미래의 대학" 분할이 자연 발생하지 않아, 프롬프트가 허용한 대로 `<Ko>` 의 ` / ` 마커를
+그 지점에 그대로 넣었다. 결과 HTML: `청중과 함께 그려보는<br>미래의 대학`.
+
+### A. DB / 서버
+
+- `supabase/migrations/0008_cover_state.sql`. CHECK 제약 확장만(비파괴). `status in ('standby','live','ended','cover')`.
+- `supabase/_ALL.sql` 끝에 0008 섹션 반영, 헤더 주석 갱신.
+- `api/_lib/session-actions.js`: `patchFor`에 `case 'cover': return { status: 'cover', voting_open: false, results_visible: false };` 추가.
+- **프로덕션 DB(`sqrnlursfdmqpigkmnio`)에 직접 Run 완료.** Supabase SQL Editor에서 실행, "Success. No rows returned" 확인.
+  실행 전 `{action:'cover'}` 호출 시 `sessions_status_check` 위반 500 에러로 재현 후, 실행 뒤 200 정상 전환으로 재검증했다.
+
+### B. /screen 렌더
+
+- `Screen.jsx`에 `CoverPlate` 함수 추가(파일 내부, 새 파일 아님. 기존 `QrPlate`/`WordCloud`/`BarChart`와 같은 패턴).
+- `ScreenView`에 `cover` prop 추가, `standby ? ... : cover ? <CoverPlate/> : <라이브 블록>` 3분기.
+- `Screen()`에서 `cover={session?.status === 'cover'}` 전달.
+
+### C. 어드민 버튼
+
+- `Admin.jsx`: "대기 화면" 바로 위에 "커버 화면" 버튼 추가(`onAction('cover')`, 같은 톤·크기, 확인 다이얼로그 없음. 가벼운 전환이라 프롬프트 지시대로 생략).
+  `STATUS`에 `cover: '커버'` 추가.
+- `DevControlPanel.jsx`: "대기로" 위에 "커버로" 버튼 추가.
+
+### D. Preview
+
+- `Preview.jsx` 대형화면 섹션 맨 앞에 "커버 / 오프닝" 프레임 추가(`<ScreenView cover />`).
+
+### 검증 (프로덕션 빌드 + 실 /api + 실제 Supabase, sim-server3 on :5301)
+
+| 항목 | 결과 |
+|---|---|
+| 마이그레이션 적용 후 build | 통과 |
+| 마이그레이션 미적용 상태 재현(500, `sessions_status_check` 위반) → 적용 후 재검증(200) | 확인 |
+| 어드민 "커버 화면" → /screen 새로고침 없이 전환(realtime) | **820ms**, `performance.getEntriesByType('navigation').length === 1` |
+| 배경/패널/radius/폰트가 결과 화면과 같은 클래스인지 코드 확인 | `GlassRoot background="/images/bg/ambient-screen.webp"`, `Glass variant="screen" radius="screen"` 동일 소스 |
+| "대기 화면" 클릭 → cover → standby(QR) 정상 전환 | 확인(어드민 상태 라벨 "커버"→"대기", 화면 QR 캔버스 렌더) |
+| 이후 질문 설정 → 투표 열기 사이클 정상(회귀) | 확인, 커버 잔존 텍스트 0 |
+| 초록 점 없음 / QR 없음 / 부제 없음 | 확인(`liveDotExists: false`, 텍스트 3줄만) |
+| 커버 화면 텍스트 색 | `rgb(10, 10, 10)`(ink) 단일값 |
+| reduced-motion 폴백 | 런타임 emulateMedia 는 이 하네스에서 미지원(환경 제약, 기존과 동일) → 코드 근거로 확인: 새 애니메이션이 아니라 기존 `.plate-in`을 재사용하므로 이미 전역 규칙에 포함됨 |
+| dist 격리 grep(`__dev__`/DevControlPanel/backup/Slido/가운뎃점/gray/navy/lucide) | 전부 0건 |
+| 새로 생성된 tailwind 클래스 | `text-screenEyebrow`, `text-screenEyebrowWide` 2개(위 "새로 만든 것" 참고, 의도된 것) |
+
+산출물: `client/test-artifacts/simulation/H-1-cover-screen.png`(1440 초기 렌더), `H-3-cover-2line.png`(마커 적용 2줄),
+`H-4-standby-after-cover.png`(대기 전환), `H-5-question-after-cover-cycle.png`(회귀), `H-6-cover-final.png`(색 감사용).
+
+### 남은 것
+
+- 정확한 1920×1080 실기기 렌더는 이 세션에서도 Playwright viewport 리사이즈가 막혀 있어(기존과 동일 제약)
+  1440px 창 + CSS 계산 근거로 대체 검증했다. 실기기(무대 프로젝터)에서 최종 육안 확인 권장.
+- 로컬 테스트용 `sim-server3`(포트 5301)가 이 세션에서 kill 권한이 없어 백그라운드에 남아 있다. 로컬 전용이라
+  프로덕션·Supabase 쿼터에 영향 없음. 터미널에서 `lsof -ti:5301 | xargs kill`로 정리 가능.
+
+
+## 전수 재검증 (2026-09-20)
+
+이 대화에서 합의된 기능·수정이 지금 코드에 실제로 다 들어가 있는지 소스 직접 읽기 + 실제 구동으로 확인했다.
+PROGRESS.md 요약 문구를 믿지 않고 파일을 다시 열어 확인한 결과다.
+
+### 체크리스트 결과
+
+| # | 항목 | 판정 | 근거 |
+|---|---|---|---|
+| 1 | migrations 0001~0008 + _ALL.sql 순서 반영 | 있음 | `supabase/migrations/` 8개, `_ALL.sql` 섹션 순서 0001→0002→0003→0004→0005→seed→0006→0007→0008 |
+| 1 | results_pulse 병합 + flush_results, show_results 가 호출 | 있음 | `0004_broadcast_throttle.sql:38`, `session-actions.js:44` (`close_voting`·`show_results` 둘 다 flush) |
+| 1 | status CHECK: backup 없음 / cover 있음 | 있음 | `_ALL.sql:358` `('standby','live','ended','cover')` (305행 backup 은 0006 이 341행에서 되돌림) |
+| 1 | results_view(bars/cloud) | 있음 | `_ALL.sql:348` |
+| 1 | RLS 3종 | 있음 | `0002_rls.sql`. 실검증: 마감 INSERT→42501 거부 / votes SELECT→`[]` / sessions UPDATE→영향 행 0 |
+| 2 | patchFor 전 액션 존재, backup 0 | 있음 | `session-actions.js:6-21` 10개 액션 + reset(question/all). backup grep 0건 |
+| 2 | Admin 버튼 전부 렌더·onClick 연결 | 있음 | `Admin.jsx:58,73,78,85,88,95,99,103,129,132,139`. 실제 화면에서 버튼 전수 확인 |
+| 2 | 세션 종료 2단 확인(3초 해제) | 있음 | `Admin.jsx:270`. 실검증: 1차 클릭 시 DB 미변경 → 2차에 ended → 3초 뒤 자동 해제 |
+| 2 | 어드민 응답 수 realtime 구독 | 있음 | `Admin.jsx:165-200` `subscribeResults` + `live_count` |
+| 2 | 인증 쿠키 검증·401 | 있음 | `session-control.js:7`, `admin-session.js:6`. 실검증: 쿠키 없이 401 / 오답 401 / 정답 204 |
+| 3 | ended 가 voted 보다 우선 | 있음 | `Vote.jsx:166` `ended ? 'waiting' : voted ? 'done' : open ? 'voting' : 'waiting'` |
+| 3 | 별도 마감 상태 없음, closed prop 0 | 있음 | grep 0건. 마감 화면 = 대기 화면 실측 확인 |
+| 3 | 42501·23505 분기 | 있음 | `Vote.jsx:181,184`. 실검증: 중복 시 "이미 투표했어요", DB 2행 유지 |
+| 3 | 완료 화면 초록 점·결과 안내 문구 없음 | 있음 | `bg-green` 은 /screen·어드민 연결표시에만. 완료 화면 텍스트에 "결과" 0 |
+| 3 | Ko/koGlue, balance, keep-all | 있음 | `Ko.jsx`, `ko-break.js` + 테스트 파일, `index.css:14,34` |
+| 4 | standby QR(Canvas), 설명 텍스트 없음 | 있음 | `Screen.jsx:2,39` QRCodeCanvas. 실측: standby 텍스트 0자 |
+| 4 | cover: 재사용·초록점/QR/부제 없음·실시간 | 있음 | `Screen.jsx:46-60`. 실측 707ms 전환, 텍스트 4줄(eyebrow 2 + 타이틀 2)이 전부 |
+| 4 | 질문 전환 stale 0 | 있음 | `Screen.jsx:242-243` 즉시 비움 + `screen-state.js` question_id 가드. 실측 막대 0 |
+| 4 | 동점이면 blue 0, 단독 1등만 blue | 있음 | `Screen.jsx:191`. 실측: 1:1 동점 blue 0개 / 단독 1등 blue 1개 |
+| 4 | 워드클라우드 조건·배치·색 | 있음 | `Screen.jsx:196` `isText && resultsView==='cloud'`. 실측: 객관식은 cloud 설정에도 막대, 배경 0·캔버스 0·앱 폰트 상속 |
+| 4 | 재연결 보정 sync() 공유 | 있음 | `Screen.jsx:256-282` 초기·재조인 같은 `sync()`, 1회 재시도 |
+| 4 | 세션 재연결 수렴 | 있음 | `session-context.jsx:25-30` 재조인 시 `fetchSession` |
+| 5 | NavFab(pathname 판정) | **없음** | 코드·문서 grep 0건. 구현된 적 없음 |
+| 5 | F키 전체화면 | **없음** | grep 0건 |
+| 5 | 온보딩·툴팁 0 | 있음 | 해당 UI 자체가 없음 |
+| 6 | keep-alive + crons + read only | 있음 | `api/keep-alive.js` (select만), `vercel.json` crons `0 3 * * *`. 실검증 200 |
+| 6 | 백업 기능 grep 0 | 있음 | src·api 0건 (0006 정리문만 예외) |
+| 6 | .env 미커밋, .env.example 최신 | 있음 | `.gitignore:3`, publishable/secret 체계 |
+| 6 | 참고 폴더 ignore | 있음 | liquidGL-main / liquidglass-main / LiquidGlassCheatsheet-main 등록 |
+| 7 | radius 단일 스케일, 커버도 기존 값만 | 있음 | 커버는 `radius="screen"` 재사용, 새 radius 0 |
+| 7 | 타이포 충돌 없음 | 있음 | screenEyebrow/Wide 는 screenMeta 와 같은 clamp, tracking 만 다름 |
+| 7 | 색 팔레트 외 0, 그라데이션 0, 가운뎃점 0 | 있음 | 3화면 실측: 텍스트 색 ink/white/blue 만, 그라데이션 0, 가운뎃점 0 |
+| 7 | prominent solid·disabled 뉴트럴·라벨 가시 | 있음 | `.glass-tint` = `rgb(31,111,255)` opacity 1, 라벨 z=1 > tint z=0, disabled opacity 1 + ink 라벨 |
+| 7 | keep-all·balance·tabular 일관 | 있음 | 전역 규칙 + 각 화면 적용 확인 |
+
+**"없음" 2건(NavFab, F키)은 의도된 미구현이다.** IA.md 와 ROUTES.md 가 "세 화면은 서로 이동하지 않는다"를
+설계 원칙으로 명시하고 있고, 이 대화 어디에서도 구현된 적이 없다. 지금 만들지 않았다. 필요하면 별도 결정 사항이다.
+
+### 실행 검증 결과 (프로덕션 빌드 + 실 /api + 실제 Supabase, sim-server3 :5301)
+
+| 단계 | 내용 | 결과 |
+|---|---|---|
+| V-1 | standby → cover → standby 실시간 전환 | PASS (커버 707ms, navigation=1) |
+| V-2 | 질문 설정 → 투표 열기 → 투표 2건 → 집계=DB | PASS (화면 2명 = DB 2행) |
+| V-3 | 마감 → 투표 거부 → 단독1등 blue 1개 → 다음 질문 stale 0 | PASS |
+| V-4 | 주관식 → view_cloud → view_bars → 이 질문 초기화 | PASS (객관식은 cloud 설정에도 막대) |
+| V-5 | 전체 초기화 → 세션 종료 → 대기 복귀 | PASS (완료자 615ms / 미투표자 616ms, 문구 동일) |
+| V-6 | 동시 투표 유실 0 / 중복 차단 | PASS |
+| V-7 | 색 감사 / 가로 스크롤 0 / prominent / 콘솔 0 | PASS |
+
+빌드 통과. dist 격리: `__dev__`·DevControlPanel·Preview·sample-questions·더미·backup·Slido·가운뎃점 전부 0건.
+dist 의 em-dash 4건은 전부 서드파티(Supabase SDK, vendor LiquidGlass) 문자열이고 우리 소스는 0건이다.
+종료 후 votes 0 / standby / voting_open false / results_visible false / results_view bars 복원 확인.
+
+### 이번 재검증에서 실제로 고친 것
+
+- `client/src/tokens.js` 주석의 em-dash 1건 제거(AGENTS.md 1절 위반이었다).
+- `DESIGN.md` 커버 절의 em-dash 2건과 오타 2건("쓔다"→"쓴다", "트래킹뜿이다"→"트래킹뿐이다") 수정.
+- `PROGRESS.md` 내 em-dash 전량 제거.
+- `session-actions.js` `case 'cover'` 들여쓰기 정렬(기능 영향 없음).
+- `.gitignore` 에 `.tmp` 추가(작업용 스크립트가 커밋에 섞일 뻔했다).
+
+### 오탐이었던 것 (기록용)
+
+- anon 으로 `PATCH /rest/v1/sessions` 가 204 를 반환해 한때 RLS 구멍으로 의심했으나,
+  `Prefer: return=representation` 으로 재확인하니 영향 행이 `[]` 이고 status 도 `live` 그대로였다.
+  UPDATE 정책이 없어 대상 행이 보이지 않아 PostgREST 가 "0행 수정"을 204 로 답한 것이다. RLS 정상이다.
+
+산출물: `client/test-artifacts/simulation/V-cover.png`, `V-bars.png`, `V-admin.png`

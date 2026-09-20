@@ -159,7 +159,11 @@ export default function Vote() {
   const ready = isText ? text.trim().length > 0 : Boolean(choice);
   const open = Boolean(session?.voting_open);
   const ended = session?.status === 'ended';
-  const state = voted ? 'done' : open && !ended ? 'voting' : 'waiting';
+  // 화면 상태 우선순위. ended 를 voted 보다 먼저 본다.
+  // 반대로 두면 이미 투표한 사람은 세션이 끝나도 "투표했어요" 화면에 머물고,
+  // 새로고침해야만 종료를 알게 된다. 새로고침을 안전장치로 쓰지 않는다.
+  // ended → standby/마감 → voted → 투표 순서. 마감(voting_open=false)은 대기와 같은 화면이다.
+  const state = ended ? 'waiting' : voted ? 'done' : open ? 'voting' : 'waiting';
 
   async function onSubmit() {
     if (!ready) return;

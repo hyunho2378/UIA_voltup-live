@@ -1,5 +1,5 @@
 -- voltup-live · _ALL.sql
--- 0001 → 0002 → 0003 → 0004 → 0005 → seed → 0006 → 0007 을 이어붙인 단일 파일.
+-- 0001 → 0002 → 0003 → 0004 → 0005 → seed → 0006 → 0007 → 0008 을 이어붙인 단일 파일.
 -- Supabase 대시보드 SQL Editor 에 전체를 붙여넣고 한 번에 Run.
 -- 개별 파일을 고치면 이 파일을 다시 만든다(정본은 migrations/ 와 seed.sql).
 
@@ -347,3 +347,12 @@ alter table public.sessions add constraint sessions_status_check
 
 alter table public.sessions add column if not exists results_view text not null default 'bars'
   check (results_view in ('bars','cloud'));
+
+-- ===== 0008_cover_state =====
+-- voltup-live · 0008 sessions.status 에 'cover' 추가
+-- 대형화면에 모듈 시작을 알리는 오프닝(커버) 상태 하나를 더한다.
+-- 비파괴: CHECK 제약만 확장한다. 기존 값·행을 지우지 않는다.
+
+alter table public.sessions drop constraint if exists sessions_status_check;
+alter table public.sessions add constraint sessions_status_check
+  check (status in ('standby','live','ended','cover'));

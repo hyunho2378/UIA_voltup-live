@@ -81,8 +81,30 @@
 | screenPct | `clamp(26px, 2.6vw, 48px)` | 700 | 1.1 | -0.02em |
 | screenVotes | `clamp(14px, 1.3vw, 22px)` | 500 | 1.3 | 0 |
 | screenMeta | `clamp(14px, 1.3vw, 20px)` | 500 | 1.4 | 0 |
+| screenEyebrow | `clamp(20px, 1.6vw, 30px)` | 600 | 1.4 | 0.02em |
+| screenEyebrowWide | `clamp(20px, 1.6vw, 30px)` | 600 | 1.4 | 0.05em |
 
 전역으로 `word-break: keep-all` 을 걸어 한글 단어 중간 줄바꿈을 막는다. 숫자는 전부 `tabular-nums`.
+
+### 커버(오프닝). 네 번째 대형화면 상태
+
+새 디자인이 아니라 기존 결과 패널과 같은 배경(`ambient-screen.webp`) · 같은 Glass(`variant="screen"`,
+`radius="screen"`) · 같은 좌측 정렬을 쓴다. 등장 모션도 새로 만들지 않고 QR 플레이트와 같은
+`.plate-in`(rise-in, 320ms, easeOut)을 그대로 쓴다.
+
+코드에 대형화면 결과 패널 위에 붙는 라벨(eyebrow) 개념이 없었다(질문은 h1 + 초록 점 + 참여 수
+메타가 전부다). 양수 트래킹도 기존에 없었다(모든 역할이 0 또는 음수). 그래서 `screenEyebrow` /
+`screenEyebrowWide` 두 역할을 새로 추가했다. 크기·색은 기존 `screenMeta`와 동일한 스케일(20m 프로젝터
+가독 검증됨)이고, 달라지는 건 트래킹뿐이다. HIG 타이포 규율(작은 텍스트는 약간 양수)을 따른다.
+
+| 구성 | 내용 | 클래스 |
+|---|---|---|
+| eyebrow 1행 | "코리아 넥스트 임팩트 포럼" | `text-screenEyebrow` |
+| eyebrow 2행 | "INTERACTIVE SESSION"(영문 대문자, 더 넓은 트래킹) | `text-screenEyebrowWide` |
+| 타이틀 | "청중과 함께 그려보는 미래의 대학" | 결과 화면 질문과 같은 `text-screenQuestion` + `<Ko>` + `balance` |
+
+부제·설명문단·버튼·QR·아이콘·로고·초록 점 전부 없다. 진행 방식은 사회자가 구두로 전달하는 내용이라 20m 거리
+대형화면은 타이틀만 담당한다. 전환은 어드민 "커버 화면" 버튼으로 수동으로만 하며 자동 타이머가 없다.
 
 ### 워드클라우드 (주관식 결과 대체 뷰)
 
@@ -230,6 +252,7 @@ SVG 를 소스로 두고 WebP 로 래스터화해 `GlassRoot` 에 넘긴다(draw
   - 라벨 열이 `max-content` 이고 전 행이 공유하므로 **막대 시작 x 가 모든 행에서 같다.** 가장 긴 라벨 뒤에만 gap 이 붙는다. 행마다 독립 그리드를 쓰면 시작점이 어긋난다.
   - **대신 선택지 문구를 짧게 쓴다.** 가장 긴 라벨이 열 폭을 정한다.
   - 색: 트랙 `barTrack`(연회색), 비1등 `inkSoft`(진회색), 1등 `blue`. **1등은 채도로, 막대는 명도로 구분한다.** 비1등과 트랙이 같은 색이면 막대 길이를 못 읽는다.
+  - **blue 는 "단독 1등"일 때만 쓴다.** 최다값을 가진 항목이 2개 이상(동점)이면 전부 `inkSoft` 로 두어 1등이 없다는 사실을 색으로 드러낸다. 0표(전부 0)도 같은 취급이라 blue 가 0개다. 워드클라우드도 같은 규칙(단독 최다 단어만 blue).
   - 키(A/B/C/D)는 라벨과 별도 노드. `screenKey`, `ink2`. 라벨은 `screenLabel`, `ink`.
   - 값은 `%`(`screenPct`, `ink`)와 `N표`(`screenVotes`, `ink2`)를 baseline 정렬로 띄워 둔다. 간격 `clamp(12px,1vw,18px)`. 둘 다 tabular-nums.
   - 막대 높이 `clamp(28px,2.8vw,56px)`, radius `bar(6)`. 성장은 `transform: scaleX`.

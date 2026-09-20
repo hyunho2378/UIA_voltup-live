@@ -21,6 +21,10 @@
 - **`WordCloud.jsx`** — 주관식 빈도 클라우드. 빈도순 크기 매핑, 색 2단. 다색 금지.
 - **`ScreenQuestion.jsx`** — 질문 대형 표시(Screen Question 타이포).
 - **`ScreenStandby.jsx`** — 슬로건 + QR + 접속 안내.
+- 커버(오프닝) 상태 — 별도 파일이 아니라 `Screen.jsx` 내부 `CoverPlate`. 결과 패널과 같은 배경·Glass 재사용,
+  eyebrow 2행 + 타이틀만(QR·버튼 없음). 이미 있는 파일 목록과 달리 실제 Screen.jsx 는 이 모든 하위 컴포넌트를
+  한 파일에 인라인으로 둘다(QrPlate/WordCloud/BarChart 동일). 이 문서의 파일 목록은 설계 의도를 보여주는 참고이고
+  실제 구조와 1:1이 아니다.
 - **`LiveCount.jsx`** — 응답 수 실시간 표시.
 
 ## 어드민 (components/admin)

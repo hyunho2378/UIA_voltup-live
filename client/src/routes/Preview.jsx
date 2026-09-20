@@ -93,6 +93,9 @@ export default function Preview() {
 
         <h2 style={S.h2}>대형화면 / /screen / 1920 x 1080 (0.42배)</h2>
         <div style={S.row}>
+          <Frame label="커버 / 오프닝" w={1920} h={1080} scale={0.42}>
+            <ScreenView cover />
+          </Frame>
           <Frame label="대기 / QR" w={1920} h={1080} scale={0.42}>
             <ScreenView standby voteUrl={VOTE_URL} qrSize={SCREEN_QR} />
           </Frame>

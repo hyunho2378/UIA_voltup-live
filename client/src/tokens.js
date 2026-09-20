@@ -47,6 +47,10 @@ export const typography = {
   // 프로젝터에서 읽혀야 한다. 20px 미만으로 내리지 않는다.
   screenMeta: { size: 'clamp(20px, 1.6vw, 30px)', weight: 500, leading: 1.4, tracking: '0' },
   screenUrl: { size: 'clamp(20px, 2.4vw, 40px)', weight: 500, leading: 1.3, tracking: '-0.01em' },
+  // 커버(오프닝) 라벨 2행. screenMeta 와 같은 크기 스케일(20m 프로젝터 가독 검증됨), 라벨 톤만 트래킹으로.
+  // 1행(한글)은 살짝, 2행(영문 대문자)은 더 넓게. 두 줄이 같은 크기와 색이되 자간으로만 위계를 나눈다.
+  screenEyebrow: { size: 'clamp(20px, 1.6vw, 30px)', weight: 600, leading: 1.4, tracking: '0.02em' },
+  screenEyebrowWide: { size: 'clamp(20px, 1.6vw, 30px)', weight: 600, leading: 1.4, tracking: '0.05em' },
 };
 
 // 8pt 기반

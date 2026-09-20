@@ -5,7 +5,8 @@ import Glass from '../components/glass/Glass.jsx';
 import GlassButton from '../components/glass/GlassButton.jsx';
 import { adminLogout, control, resetVotes } from '../lib/admin.js';
 import { useSession } from '../lib/session-context.jsx';
-import { isSupabaseConfigured, fetchQuestions, fetchLiveCount } from '../lib/supabase.js';
+import { acceptsBroadcast } from '../lib/screen-state.js';
+import { isSupabaseConfigured, fetchQuestions, fetchLiveCount, subscribeResults } from '../lib/supabase.js';
 
 const CONN = {
   connected: { dot: 'bg-green', text: '연결됨' },
@@ -13,7 +14,7 @@ const CONN = {
   disconnected: { dot: 'bg-ink2', text: '끊김' },
 };
 
-const STATUS = { standby: '대기', live: '진행 중', ended: '종료' };
+const STATUS = { standby: '대기', live: '진행 중', ended: '종료', cover: '커버' };
 
 /** 표시 전용. Supabase 도 /api 도 모른다. */
 export function AdminView({
@@ -25,8 +26,10 @@ export function AdminView({
   failed = false,
   note = '',
   resetArmed = false,
+  endArmed = false,
   onAction = () => {},
   onReset = () => {},
+  onEnd = () => {},
   onLogout = () => {},
 }) {
   const open = Boolean(session?.voting_open);
@@ -43,7 +46,7 @@ export function AdminView({
 
   return (
     <GlassRoot background="/images/bg/ambient-admin.webp" className="admin-grid p-2xl" panelKey="admin">
-      <Glass variant="regular" radius="xl" className="p-panel md:row-span-6">
+      <Glass variant="regular" radius="xl" className="p-panel md:row-span-7">
         <ul className="flex flex-col gap-sm">
           {ordered.map((q) => {
             const on = q.id === activeId;
@@ -55,7 +58,9 @@ export function AdminView({
                   onClick={() => onAction('set_question', q.id)}
                   aria-current={on}
                   className={`press flex min-h-touch w-full items-center gap-radio rounded-md border px-optionX py-base text-left text-body ${
-                    on ? 'border-ink bg-ink text-white' : 'border-optionBorder bg-optionFill text-ink'
+                    on
+                      ? 'border-blue bg-blue text-white'
+                      : 'border-optionBorder bg-optionFill text-ink disabled:border-line disabled:bg-line'
                   }`}
                 >
                   <span className={`text-caption tabular ${on ? 'text-white' : 'text-ink'}`}>{q.order_no}</span>
@@ -93,6 +98,10 @@ export function AdminView({
         다음 질문
       </GlassButton>
 
+      <GlassButton disabled={busy} onClick={() => onAction('cover')}>
+        커버 화면
+      </GlassButton>
+
       <GlassButton disabled={busy} onClick={() => onAction('standby')}>
         대기 화면
       </GlassButton>
@@ -126,6 +135,12 @@ export function AdminView({
           {resetArmed ? '한 번 더 누르면 전체 삭제' : '전체 초기화'}
         </GlassButton>
       </div>
+
+      {/* 세션 종료. 되돌릴 수 없으므로 한 번 더 누르게 하고, 위험을 색이 아니라 여백으로 표시한다.
+          같은 크기·같은 톤을 유지한다. 종료 뒤 '대기 화면'을 누르면 standby 로 돌아간다. */}
+      <GlassButton prominent={endArmed} disabled={busy} onClick={onEnd} className="mt-md">
+        {endArmed ? '한 번 더 누르면 세션 종료' : '세션 종료'}
+      </GlassButton>
     </GlassRoot>
   );
 }
@@ -139,18 +154,57 @@ export default function Admin() {
   const [failed, setFailed] = useState(false);
   const [note, setNote] = useState('');
   const [resetArmed, setResetArmed] = useState(false);
+  const [endArmed, setEndArmed] = useState(false);
   const failTimer = useRef(null);
   const noteTimer = useRef(null);
   const armTimer = useRef(null);
+  const endTimer = useRef(null);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     fetchQuestions().then(setQuestions);
   }, []);
 
+  // 응답 수는 진행자가 "지금 닫아도 되나"를 판단하는 유일한 지표다. 질문 전환 시 1회 조회만 하면
+  // 투표가 들어오는 동안 0 에서 움직이지 않는다. /screen 과 같은 results:{qid} broadcast 를 써 갱신한다.
+  // 어드민은 1명이라 채널 1개가 늘고(같은 소켓 위 다중화) 청중 연결 수에는 영향이 없다.
   useEffect(() => {
-    if (!isSupabaseConfigured || !session?.active_question_id) return;
-    fetchLiveCount(session.active_question_id).then(setCount);
+    const qid = session?.active_question_id;
+    if (!isSupabaseConfigured || !qid) {
+      setCount(0);
+      return undefined;
+    }
+    let alive = true;
+    setCount(0);
+    // Screen 과 같은 규칙: 초기 조회와 재연결 보정이 한 함수를 쓰고, 실패하면 1회 재시도한다.
+    const sync = (retry = 1) => {
+      fetchLiveCount(qid)
+        .then((v) => alive && setCount(v))
+        .catch(() => {
+          if (alive && retry > 0) setTimeout(() => sync(retry - 1), 1000);
+        });
+    };
+    sync();
+
+    // 재연결 보정. 끊긴 동안의 broadcast 는 재조인해도 다시 오지 않는다(Screen 과 같은 규칙).
+    let joins = 0;
+    const off = subscribeResults(
+      qid,
+      (p) => {
+        if (!acceptsBroadcast(qid, p)) return;
+        if (typeof p.live_count === 'number') setCount(p.live_count);
+      },
+      (status) => {
+        if (status !== 'connected') return;
+        joins += 1;
+        if (joins === 1) return; // 최초 조인은 위 sync 가 이미 보정했다
+        sync();
+      },
+    );
+    return () => {
+      alive = false;
+      off();
+    };
   }, [session?.active_question_id]);
 
   useEffect(
@@ -158,9 +212,16 @@ export default function Admin() {
       clearTimeout(failTimer.current);
       clearTimeout(noteTimer.current);
       clearTimeout(armTimer.current);
+      clearTimeout(endTimer.current);
     },
     [],
   );
+
+  function showNote(text) {
+    setNote(text);
+    clearTimeout(noteTimer.current);
+    noteTimer.current = setTimeout(() => setNote(''), 2000);
+  }
 
   function fail() {
     setFailed(true);
@@ -199,9 +260,29 @@ export default function Admin() {
       if (body?.session) setSession(body.session);
       if (scope === 'question') setCount(0);
       setFailed(false);
-      setNote('초기화했어요');
-      clearTimeout(noteTimer.current);
-      noteTimer.current = setTimeout(() => setNote(''), 2000);
+      showNote('초기화했어요');
+    } catch {
+      fail();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // 세션 종료도 전체 초기화와 같은 2단 확인이다. 무대에서 손이 미끄러져 행사가 끝나버리면 되돌릴 수 없다.
+  async function onEnd() {
+    if (!endArmed) {
+      setEndArmed(true);
+      clearTimeout(endTimer.current);
+      endTimer.current = setTimeout(() => setEndArmed(false), 3000);
+      return;
+    }
+    clearTimeout(endTimer.current);
+    setEndArmed(false);
+    setBusy(true);
+    try {
+      setSession(await control('end'));
+      setFailed(false);
+      showNote('세션을 종료했어요');
     } catch {
       fail();
     } finally {
@@ -224,8 +305,10 @@ export default function Admin() {
       failed={failed}
       note={note}
       resetArmed={resetArmed}
+      endArmed={endArmed}
       onAction={onAction}
       onReset={onReset}
+      onEnd={onEnd}
       onLogout={onLogout}
     />
   );

@@ -14,6 +14,7 @@ export function patchFor(action, questionId) {
     case 'view_bars':    return { results_view: 'bars' };
     case 'view_cloud':   return { results_view: 'cloud' };
     case 'standby':      return { status: 'standby', voting_open: false, results_visible: false };
+    case 'cover':        return { status: 'cover', voting_open: false, results_visible: false };
     case 'end':          return { status: 'ended', voting_open: false };
     default: return null;
   }
