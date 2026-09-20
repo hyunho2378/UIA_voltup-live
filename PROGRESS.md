@@ -1153,3 +1153,56 @@ Q2 는 5지에서 6지로 늘었지만 옵션 카드가 `useFitScale` 로 자동
 빌드 성공, 금지 항목 grep(HEX·transition-all·hover:scale·localStorage·네이티브 select/date) 0건.
 
 산출물: `final-cover-1920.png`, `final-cover-390.png`, `final-q2-actual.png`, `final-q4.png`.
+
+
+## 로고 파비콘 + 워드클라우드 FLIP 마이크로인터랙션 (2026-09-21)
+
+### 파비콘
+
+`brandRamp`로 재도색한 로고(`public/images/brand/logo.svg`)를 원본으로 썼다. 로고 원본 viewBox 가
+142.55x74.13(가로로 넓은 워드마크)이라 정사각 탭 아이콘에 그대로 쓰면 위아래가 잘리거나 눌린다.
+`scripts/favicon.mjs`(`npm run favicon`)가 sharp `fit:'contain'`으로 정사각 캔버스에 레터박싱해
+비율을 지킨다.
+
+- `favicon.svg`(모던 브라우저, 정사각 뷰박스로 원본 로고를 감싼 래퍼) + `favicon-32/192/512.png`,
+  `apple-touch-icon.png`(흰 배경, iOS 가 투명을 검게 깔아버리는 것 방지).
+- `index.html`에 `<link rel="icon">` 4종 추가.
+
+### 워드클라우드 FLIP
+
+사용자 요청: "워드클라우드도 부드러운 마이크로인터랙션으로". 기존엔 표가 갱신되면 단어 크기(font-size)와
+위치(flex-wrap 재배치)가 순간 이동했다. `font-size`와 위치는 레이아웃 속성이라 직접 애니메이션하면
+AGENTS 1절(layout/paint 유발 속성 애니메이션 금지)에 걸린다. BarChart가 막대 성장을
+`transform: scaleX`로 대체하는 것과 같은 근거로, FLIP(First-Last-Invert-Play) 기법을 도입했다.
+
+- 변화 직전 위치·크기를 `getBoundingClientRect()`로 재고(First), DOM이 이미 새 값으로 렌더된 뒤(Last)
+  그 차이를 `translate()·scale()`로 역산(Invert)해 순간 이동이 없었던 것처럼 보이게 한 다음,
+  다음 프레임에 `transition: transform 320ms easeOut`을 걸고 identity로 되돌려(Play) 부드럽게 잇는다.
+- 새로 등장하는 단어는 대상이 아니다. React가 새 DOM 노드를 만들므로 기존 `cloud-in`(마운트 시
+  opacity+scale) 애니메이션이 그대로 맞는다. 이미 있던 단어(`prevRectsRef`에 이전 rect가 있는 단어)만
+  FLIP 대상으로 거른다.
+- 변화가 0.5px/1% 미만이면 아무것도 안 건드린다(불필요한 스타일 쓰기 방지).
+
+### 검증(운영 프로덕션, 실 투표 주입)
+
+정적 fixture로는 시간에 따른 변화를 재현할 수 없어 운영 DB에 순차로 투표를 넣어 실측했다.
+`MutationObserver`로 각 단어 span의 `style` 속성 변경을 브라우저 안에서 직접 기록했다(라운드트립
+지연 때문에 외부 폴링으로는 320ms 창을 놓쳤다).
+
+큐시트 초기화 → Q4 라이브 전환 → 투표 7건 → flush → "연결" 5표, "현장" 2표, 신규 단어 2개 추가 → flush
+→ "협력" 3표, "질문" 1표 추가 → flush. 이 시퀀스에서 기존 단어 7개 전부 FLIP 로그가 잡혔다:
+
+```
+t=9642ms  연결: translate(-218.852px, 16.8789px) scale(1.15224), transition:none
+          현장: translate(393.066px, -104.891px) scale(1.152), transition:none
+          (자율·개방·신뢰·도전·실험도 각각 수백 px 이동값)
+t=9658ms  전체 단어: transform:'', transition:'transform 320ms cubic-bezier(0.16, 1, 0.3, 1)'
+```
+
+신규 단어("협력", "질문")는 이 로그에 전혀 나타나지 않았다. FLIP 대상에서 정확히 제외되고
+자체 마운트 애니메이션만 탔다는 뜻이다. Invert(transform 적용)에서 Play(transition 시작)까지
+16ms(한 프레임) 안에 일어나 즉시 반영처럼 보이지 않으면서도 지연이 느껴지지 않았다.
+
+빌드 성공, 배포 후 실 데이터로 검증 완료. 테스트 투표는 전부 삭제하고 세션은 표지로 복귀했다.
+
+산출물: `flip-final-state.png`(연결이 단독 1등으로 정착한 최종 화면).
