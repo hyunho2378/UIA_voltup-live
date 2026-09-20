@@ -1206,3 +1206,88 @@ t=9658ms  전체 단어: transform:'', transition:'transform 320ms cubic-bezier(
 빌드 성공, 배포 후 실 데이터로 검증 완료. 테스트 투표는 전부 삭제하고 세션은 표지로 복귀했다.
 
 산출물: `flip-final-state.png`(연결이 단독 1등으로 정착한 최종 화면).
+
+
+## Q1 척도 슬라이더 전환 + 큐시트 재확인 반영 (2026-09-21)
+
+### 배경
+
+사용자가 진행 대본(사회자 대사 포함 전체 큐시트) 재확인분을 전달. Q1 이 "척도 1~5점까지(.5 가능)"로
+바뀌어 기존 5버튼 이산 선택으로는 표현할 수 없었다. 사용자 확인: "가로로 해가지고 슬라이더처럼 할 수
+있게 하자, 완전 이게 인터랙티브지" → 가로 드래그 슬라이더로 구현.
+
+### 스키마 (0010_scale_question.sql, 운영 DB 적용 완료)
+
+- `questions.type` CHECK 에 `'scale'` 추가.
+- `votes.scale_value numeric(2,1)` 컬럼 추가(nullable).
+- `votes_one_answer` CHECK 를 옵션/텍스트/척도 셋 중 정확히 하나만 채워지도록 3분기로 확장.
+- `votes_scale_range` CHECK 신설: `1 <= scale_value <= 5` 이고 `scale_value * 2` 가 정수(0.5 단위만 허용).
+- `get_results(q_id)` 에 `scale` 분기 추가: `generate_series(1,5,0.5)` 로 9개 눈금을 전부 만들고
+  (0표 눈금도 포함, choice 의 LEFT JOIN 방식과 동일한 근거) `average` 를 서버에서 미리 반올림해 내려준다.
+- RLS 는 손대지 않았다. `votes_insert_open` 정책이 `option_id is null` 이면 통과시키므로 scale_value
+  전용 행도 기존 정책 그대로 통과한다.
+- **적용 방법 메모**: 이 프로젝트는 REST API(PostgREST) 키만 있고 raw Postgres 연결 문자열이 없어
+  DDL 을 REST 로 실행할 수 없다. Supabase 대시보드 SQL Editor 에 로그인돼 있어 브라우저 자동화로
+  직접 실행했다. Monaco 에디터에 멀티라인 SQL 을 넣을 때 `keyboard.type` 은 자동 괄호닫기가 내용을
+  깨뜨렸고 클립보드 API(`navigator.clipboard.writeText`, `execCommand('copy')`) 도 이 환경에서 막혀
+  있었다. `window.monaco.editor.getModels()[0].setValue(text)` 로 모델 값을 직접 써서 해결했다
+  (Apps Script Monaco 조작과 같은 패턴).
+
+### Q1 데이터
+
+`questions.type` choice→scale, 기존 5개 옵션 중 중간 3개(그렇지 않다/보통이다/그렇다) 삭제,
+양 끝 2개(전혀 그렇지 않다=1번, 매우 그렇다=2번)만 남겼다. 슬라이더 라벨은 이 2행에서 가져온다.
+
+### 클라이언트
+
+- **`Slider`(Vote.jsx, 신규)**: 가로 드래그, pointerdown/move/up 으로 트랙 대비 위치를 계산해
+  1~5 사이 9개 눈금(0.5 단위)에 스냅한다. 방향키(←→↑↓, Home, End)로도 조작 가능. 드래그 중 위치를
+  옮기는 것은 CSS 애니메이션이 아니라 사용자 제스처에 직접 반응하는 것이라 AGENTS 1절(레이아웃 유발
+  속성 애니메이션 금지) 대상이 아니다. 트랙 채움은 BarChart 와 같은 패턴으로 `transform: scaleX` 만 쓴다.
+  네이티브 `input type=range` 대신 커스텀 컴포넌트로 만들었다(ROUTES 규칙: 네이티브 폼 컨트롤 금지).
+  터치 히트 영역은 `touchMin`(44px), 시각 트랙은 8px.
+- **`ScaleHint`(Screen.jsx, 신규)**: 결과 공개 전. 빈 트랙 + 양 끝 설명 라벨만 보여준다(개별 응답 비공개
+  원칙은 객관식 OptionList 와 동일하되, 척도는 선택지가 없으니 끝단 의미만 전달).
+- **`ScaleResult`(Screen.jsx, 신규)**: 결과 공개 후. 9개 눈금 히스토그램(단독 최다 눈금만 blue, 나머지
+  inkSoft, 색 규칙은 막대·워드클라우드와 동일) + "평균 N점" + 정수 눈금(1~5)에만 숫자 라벨 + 양 끝
+  설명 라벨.
+- `supabase.js` `submitVote` 에 `scaleValue` 파라미터 추가, `votes` insert 에 `scale_value` 포함.
+- `Vote.jsx`/`Screen.jsx` 컨테이너에 `scale` 상태와 `isScale` 분기 배선.
+
+### Q4 캡션 숨김 (사용자 피드백)
+
+"내가 생각하는 미래의 대학은 ___이다도, 저렇게 결과 날 때 안 나는 게 낫겠어." — 워드클라우드 결과가
+뜨면 빈칸 채우기 캡션을 더 이상 보여주지 않는다. 응답이 모이기 전(수집 단계)에만 필요한 문구이고,
+결과가 곧 답이라 캡션이 중복으로 느껴진다는 피드백. `isText && !(resultsVisible && items.length > 0)`
+조건으로 변경. `/vote` 쪽 캡션은 그대로 둔다(투표 중에는 계속 안내가 필요하다).
+
+### 큐시트 재확인 반영 (문항 텍스트)
+
+| 항목 | 이전 | 이후 |
+|---|---|---|
+| Q2 선택지 2 | 회복탄력성·변화 대응 역량 | 변화적응·대응 역량 |
+| Q2 선택지 3 | 소통·협업 역량 | 리더십·소통·협업 역량 |
+| Q3 질문 | 미래의 대학을 만들기 위해, 대학은 무엇부터 바뀌어야 할까요? | UIA(대학임팩트연합)가 가장 우선적으로 나아가야 할 방향은 무엇이라고 생각하십니까? |
+
+Q3 선택지 5개는 문구 변경 없음. "인터렉티브 세션" 표기는 재확인 대본과 일치 확인(변경 없음).
+
+### 검증 (운영 프로덕션, 실제 투표)
+
+| 항목 | 결과 |
+|---|---|
+| DB 제약: scale_value=3.5 삽입 | 201 (성공) |
+| DB 제약: scale_value=3.3(0.5 단위 위반) | 400, `votes_scale_range` 위반 |
+| DB 제약: scale_value=0.5(범위 위반) | 400, `votes_scale_range` 위반 |
+| get_results(Q1) 스키마 확인 | `type:"scale"`, 9개 눈금, `average` 포함 |
+| /vote 슬라이더 드래그 → aria-valuenow | 트랙 70% 지점 클릭 → 4(계산값과 일치) |
+| /vote 제출 전 버튼 비활성 → 조작 후 활성 | 확인 |
+| 실제 제출 → DB scale_value | `4.0` 저장 확인 |
+| /screen 결과 공개 전 힌트 | 양 끝 라벨만, 개별 응답 비공개 |
+| /screen 결과 공개 후 | "평균 4점", 9개 막대, 1/2/3/4/5 라벨, "1명 참여" |
+| Q4 결과 공개 전 캡션 | 노출 |
+| Q4 결과 공개 후 캡션 | 숨김(확인) |
+
+빌드 성공, 금지 항목 grep(HEX·transition-all·hover:scale·localStorage·네이티브 select/date) 0건.
+테스트 투표 전부 삭제, 세션은 표지로 복귀.
+
+산출물: `vote-slider-initial.png`, `vote-slider-set.png`, `screen-scale-hint.png`, `screen-scale-result.png`.
