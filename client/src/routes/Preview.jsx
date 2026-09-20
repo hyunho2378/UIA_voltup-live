@@ -107,7 +107,7 @@ export default function Preview() {
           <Frame label="결과 / 객관식 압도적 1등" w={1920} h={1080} scale={0.42}>
             <ScreenView question={q2} results={mockResults.landslide} liveCount={mockCounts.landslide} resultsVisible />
           </Frame>
-          <Frame label="결과 / 주관식 막대" w={1920} h={1080} scale={0.42}>
+          <Frame label="결과 / 주관식 소수 응답" w={1920} h={1080} scale={0.42}>
             <ScreenView question={q5} results={mockResults.text} liveCount={mockCounts.text} resultsVisible />
           </Frame>
           <Frame label="결과 / 주관식 워드클라우드" w={1920} h={1080} scale={0.42}>
@@ -116,10 +116,9 @@ export default function Preview() {
               results={mockResults.cloud}
               liveCount={mockCounts.cloud}
               resultsVisible
-              resultsView="cloud"
             />
           </Frame>
-          <Frame label="결과 미공개 / 질문만" w={1920} h={1080} scale={0.42}>
+          <Frame label="결과 미공개 / 질문과 선택지" w={1920} h={1080} scale={0.42}>
             <ScreenView question={q2} results={mockResults.landslide} resultsVisible={false} />
           </Frame>
         </div>

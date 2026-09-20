@@ -368,6 +368,9 @@
 .cloud-chip {
   padding: 0.26em 0.6em;
   border-radius: theme('borderRadius.full');
+  /* 칩 안에서 줄바꿈되면 알약이 두 줄로 부풀어 화면을 잡아먹는다. 길이 보정은 JS 가 한다. */
+  white-space: nowrap;
+  text-align: center;
   background: rgba(255, 255, 255, 0.3);
   -webkit-backdrop-filter: blur(20px) saturate(1.6);
   backdrop-filter: blur(20px) saturate(1.6);

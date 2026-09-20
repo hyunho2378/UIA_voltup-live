@@ -78,7 +78,6 @@ export default function DevControlPanel() {
   const idx = ordered.findIndex((q) => q.id === session?.active_question_id);
   const next = idx >= 0 ? ordered[idx + 1] : ordered[0];
   const current = idx >= 0 ? ordered[idx] : null;
-  const view = session?.results_view ?? 'bars';
 
   const Btn = ({ onClick, disabled, children }) => (
     <button
@@ -108,12 +107,6 @@ export default function DevControlPanel() {
         <Btn onClick={() => run('cover')}>표지 화면</Btn>
         <Btn onClick={() => run('standby')}>QR 열기</Btn>
         <Btn onClick={() => run('closing')}>클로징 화면</Btn>
-        <Btn
-          disabled={current?.type !== 'text'}
-          onClick={() => run(view === 'cloud' ? 'view_bars' : 'view_cloud')}
-        >
-          {view === 'cloud' ? '막대로' : '워드클라우드로'}
-        </Btn>
         <Btn
           disabled={!current}
           onClick={() => post({ action: 'reset', scope: 'question', questionId: session?.active_question_id })}

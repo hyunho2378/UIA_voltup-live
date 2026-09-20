@@ -47,6 +47,12 @@ export const typography = {
   // 프로젝터에서 읽혀야 한다. 20px 미만으로 내리지 않는다.
   screenMeta: { size: 'clamp(20px, 1.6vw, 30px)', weight: 500, leading: 1.4, tracking: '0' },
   screenUrl: { size: 'clamp(20px, 2.4vw, 40px)', weight: 500, leading: 1.3, tracking: '-0.01em' },
+  // 투표 중(결과 공개 전) 대형화면에 띄우는 선택지. 막대·퍼센트 열이 없어 자리가 남으므로
+  // 결과 화면 라벨(screenLabel)보다 훨씬 크게 둔다. 20m 밖에서 먼저 읽는 것이 선택지다.
+  screenOption: { size: 'clamp(32px, 4vw, 80px)', weight: 700, leading: 1.25, tracking: '-0.01em' },
+  screenOptionKey: { size: 'clamp(24px, 2.4vw, 46px)', weight: 500, leading: 1.2, tracking: '0' },
+  cloudWord: { size: 'clamp(22px, 2.2vw, 42px)', weight: 600, leading: 1.2, tracking: '-0.01em' },
+  cloudLead: { size: 'clamp(22px, 2.2vw, 42px)', weight: 700, leading: 1.2, tracking: '-0.01em' },
   // 커버(오프닝) 라벨 2행. screenMeta 와 같은 크기 스케일(20m 프로젝터 가독 검증됨), 라벨 톤만 트래킹으로.
   // 1행(한글)은 살짝, 2행(영문 대문자)은 더 넓게. 두 줄이 같은 크기와 색이되 자간으로만 위계를 나눈다.
   screenEyebrow: { size: 'clamp(20px, 1.6vw, 30px)', weight: 600, leading: 1.4, tracking: '0.02em' },
@@ -106,8 +112,10 @@ export const layout = {
 
   // 워드클라우드. 위계는 크기로만 만든다(색·투명도 아님).
   // 크기는 단어 수에 따라 cloudFitWords 기준으로 함께 줄어든다(넘침 방지).
-  cloudMin: 'clamp(24px, 2.6vw, 50px)',
-  cloudMax: 'clamp(64px, 8vw, 154px)',
+  // 단어가 적을 때 최대치가 화면을 잡아먹었다(1개일 때 154px 칩이 패널 절반을 차지).
+  // 칩 여백까지 계산하면 이 정도가 상한이다.
+  cloudMin: typography.cloudWord.size,
+  cloudMax: 'clamp(46px, 5vw, 96px)',
   cloudGap: 'clamp(10px, 1.2vw, 22px)',
   // 패널 전체 폭을 쓰면 단어가 한 줄로 늘어서 띠가 된다. 구름이 되려면 줄이 여러 개여야 한다.
   // 짧은 화면에서는 폭을 넓혀 줄 수를 줄인다. 줄이 늘면 세로로 넘친다.
@@ -115,6 +123,7 @@ export const layout = {
   // 그만큼 줄이 늘어 9줄까지 가며 세로로 240px 넘쳐서 폭을 넓히고 기준 단어 수를 낮춰 전체를 줄였다.
   cloudWidth: 'min(100%, max(76vh, 58vw))',
   cloudWords: 30, // 상위 N
+  cloudLengthRef: 5, // 이 길이를 넘으면 최댓값만 길이에 반비례해 축소
   cloudFitWords: 8, // 이 개수일 때 최대 크기. 더 많으면 전체를 줄여 패널을 넘지 않게 한다
   qrRatio: 0.38, // 화면 짧은 변 대비 QR 크기
   // 클로징(홍보) 화면. 로고가 주인공이고 QR 은 보조라 대기 화면 QR 보다 작게 둔다.

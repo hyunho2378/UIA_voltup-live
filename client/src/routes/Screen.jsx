@@ -3,7 +3,7 @@ import { QRCodeCanvas } from 'qrcode.react';
 import GlassRoot from '../components/glass/GlassRoot.jsx';
 import Glass from '../components/glass/Glass.jsx';
 import Ko from '../components/glass/Ko.jsx';
-import { layout, motion } from '../tokens.js';
+import { layout, motion, typography } from '../tokens.js';
 import { useSession } from '../lib/session-context.jsx';
 import { acceptsBroadcast, visibleResults } from '../lib/screen-state.js';
 import {
@@ -94,9 +94,16 @@ function WordCloud({ items, highlight }) {
   const counts = words.map((w) => w.count ?? 0).sort((a, b) => a - b);
   const median = counts[Math.floor(counts.length / 2)] ?? 0;
 
+  // 긴 단어는 줄이지 않으면 칩 하나가 화면 폭을 다 잡아먹는다(실측: 12자 단어가 칩 안에서
+  // 두 줄로 갈라졌다). 기준 길이보다 길면 길이에 반비례해 줄인다.
+  const LEN_REF = layout.cloudLengthRef;
+  const lenFit = (word) => Math.min(1, LEN_REF / Math.max(1, [...String(word ?? '')].length));
+
   // 단어가 많을수록 전체를 줄인다. 이게 없으면 30단어에서 패널을 넘어 화면이 스크롤된다.
+  // 보정은 최댓값에만 건다. 하한까지 같이 줄이면 꼬리 단어가 20m 에서 안 보이는 크기까지 내려간다
+  // (실측: 19단어일 때 꼬리가 21px). 줄이는 건 제일 큰 단어만으로 충분하다.
   const fit = Math.min(1, Math.sqrt(layout.cloudFitWords / words.length)).toFixed(4);
-  const min = `calc(${layout.cloudMin} * ${fit})`;
+  const min = layout.cloudMin;
   const max = `calc(${layout.cloudMax} * ${fit})`;
 
   return (
@@ -107,7 +114,9 @@ function WordCloud({ items, highlight }) {
       {arranged.map((w) => {
         const count = w.count ?? 0;
         // sqrt 매핑. 1등이 표 수에 비례해 과하게 커지지 않는다.
-        const r = Math.sqrt(count / top).toFixed(4);
+        const r = (Math.sqrt(count / top) * lenFit(w.word)).toFixed(4);
+        // clamp 의 하한이 상한보다 커지면 하한이 이긴다. 긴 단어가 하한 때문에 다시 커지는 걸 막는다.
+        const cap = `calc(${layout.cloudMax} * ${fit} * ${r})`;
         return (
           <span
             key={w.word}
@@ -116,16 +125,52 @@ function WordCloud({ items, highlight }) {
             }`}
             style={{
               // clamp(최소, 최대 * sqrt(비율), 최대). 꼬리 단어는 최소값에 붙고 1등만 최대값에 닿는다.
-              fontSize: `clamp(${min}, calc(${layout.cloudMax} * ${fit} * ${r}), ${max})`,
-              fontWeight: count >= median ? 700 : 600,
-              letterSpacing: '-0.01em',
-              lineHeight: 1.2,
+              // 하한은 길이 보정을 받지 않는다. 받게 했더니 긴 단어가 18px 까지 내려가 안 보였다.
+              fontSize: `min(${max}, max(${min}, ${cap}))`,
+              fontWeight: count >= median ? typography.cloudLead.weight : typography.cloudWord.weight,
+              letterSpacing: typography.cloudWord.tracking,
+              lineHeight: typography.cloudWord.leading,
             }}
           >
             <Ko>{w.word}</Ko>
           </span>
         );
       })}
+    </div>
+  );
+}
+
+// 투표는 열렸고 결과는 아직 공개 전일 때 띄운다. 청중은 20m 밖이라 폰을 보기 전에 무엇을 고르는지
+// 대형화면에서 먼저 읽는다. 집계는 보여주지 않는다. 막대와 같은 타이포·행 구분선을 쓴다.
+function OptionList({ options }) {
+  return (
+    <div className="flex flex-1 flex-col justify-center" style={{ marginTop: layout.screenChartTop }}>
+      <div
+        className="grid flex-1"
+        style={{
+          gridTemplateColumns: 'max-content minmax(0, 1fr)',
+          columnGap: 0,
+          gridAutoRows: '1fr',
+          minHeight: `min(calc(${layout.chartRowMin} * ${options.length}), 100%)`,
+          maxHeight: `calc(${layout.chartRowMax} * ${options.length})`,
+        }}
+      >
+        {options.map((o, i) => {
+          const line = i ? 'border-t border-rowLine' : '';
+          return (
+            <div key={o.id} className="contents">
+              <div className={`${line} flex items-center`}>
+                <span className="text-screenOptionKey text-ink tabular">{ALPHA[i]}</span>
+              </div>
+              <div className={`${line} flex items-center`} style={{ paddingLeft: layout.chartGap }}>
+                <p className="text-screenOption text-ink">
+                  <Ko>{o.label}</Ko>
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -205,7 +250,6 @@ export function ScreenView({
   cover = false,
   closing = false,
   resultsVisible = true,
-  resultsView = 'bars',
   voteUrl = '',
   closingUrl = CLOSING_URL,
   qrSize = 320,
@@ -220,9 +264,15 @@ export function ScreenView({
   const top = Math.max(0, ...items.map((it) => it.count ?? 0));
   const leaders = items.filter((it) => (it.count ?? 0) === top).length;
   const highlight = top > 0 && leaders === 1 ? top : null;
-  const isText = matched?.type === 'text';
-  // 객관식은 뷰 설정과 무관하게 언제나 막대다. 워드클라우드는 주관식에만 의미가 있다.
-  const cloud = isText && resultsView === 'cloud';
+  const isText = question?.type === 'text';
+  // 결과 공개 전에 보여줄 선택지. 집계가 아니라 질문 자체의 선택지라 question 에서 가져온다.
+  const choiceOptions =
+    question?.type === 'choice'
+      ? [...(question.options ?? [])].sort((a, b) => a.order_no - b.order_no)
+      : [];
+  // 객관식은 언제나 막대, 주관식은 언제나 워드클라우드다.
+  // 주관식을 막대로 보는 경우가 없어 뷰 전환 자체를 없앴다(results_view 는 스키마에 남아 있다).
+  const cloud = isText;
 
   return (
     <GlassRoot background="/images/bg/ambient-screen.webp" className="flex items-stretch justify-center p-4xl">
@@ -251,6 +301,8 @@ export function ScreenView({
                 )}
                 <p className="mt-xl text-screenMeta text-ink tabular">{liveCount}명 참여</p>
               </>
+            ) : choiceOptions.length > 0 ? (
+              <OptionList options={choiceOptions} />
             ) : null}
           </div>
         )}
@@ -328,7 +380,6 @@ export default function Screen() {
       cover={session?.status === 'cover'}
       closing={session?.status === 'closing'}
       resultsVisible={Boolean(session?.results_visible)}
-      resultsView={session?.results_view ?? 'bars'}
       voteUrl={import.meta.env.VITE_VOTE_SHORT_URL || `${window.location.origin}/vote`}
       qrSize={qrSize}
     />

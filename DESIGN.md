@@ -120,24 +120,24 @@
 
 QR 은 스캔 가독성이 재질보다 우선이라 대기 화면과 동일하게 흰 플레이트 위에 올린다. 설명 문구는 두지 않는다.
 
-### 워드클라우드 (주관식 결과 대체 뷰)
+### 워드클라우드 (주관식 전용 결과 뷰)
 
 **새 디자인이 아니라 같은 결과 패널의 다른 배치다.** 밝은 ambient + 글래스 패널, 질문 줄, 실시간 점,
 하단 `N명 참여`, 패널 여백까지 막대 뷰와 100% 동일하다. 막대가 있던 자리만 바뀐다.
 
 | 토큰 | 값 | 쓰임 |
 |---|---|---|
-| `layout.cloudMin` | `clamp(24px, 2.6vw, 50px)` | 꼬리 단어 크기 |
-| `layout.cloudMax` | `clamp(64px, 8vw, 154px)` | 최다 단어 크기 |
+| `layout.cloudMin` | `clamp(22px, 2.2vw, 42px)` | 꼬리 단어 크기 |
+| `layout.cloudMax` | `clamp(46px, 5vw, 96px)` | 최다 단어 크기 |
 | `layout.cloudGap` | `clamp(10px, 1.2vw, 22px)` | 단어 간격 |
 | `layout.cloudWidth` | `min(100%, max(76vh, 58vw))` | 단어가 감기는 폭 |
 | `layout.cloudWords` | `30` | 상위 N |
 | `layout.cloudFitWords` | `8` | 이 개수일 때 최대 크기 |
 
-- **크기 매핑**: `clamp(cloudMin, cloudMax * sqrt(count / maxCount), cloudMax)`.
-  sqrt 라 1등이 표 수에 비례해 과하게 커지지 않는다.
-- **단어 수 보정**: 전체 크기에 `min(1, sqrt(cloudFitWords / 단어수))` 를 곱한다.
-  단어가 많을수록 작아져 패널을 넘지 않는다. 이게 없으면 30단어에서 화면이 세로로 스크롤된다.
+- **크기 매핑**: `fit = min(1, sqrt(cloudFitWords / 단어수))`, `lengthFit = min(1, cloudLengthRef / 글자수)`.
+  표시 크기는 `min(cloudMax * fit, max(cloudMin, cloudMax * fit * sqrt(count / maxCount) * lengthFit))`.
+  하한에는 길이 보정을 하지 않는다. `cloudLengthRef = 5`. 칩 안은 한 줄 및 중앙 정렬.
+- **단어 수 보정**: 최대 크기에만 fit을 적용한다. 단어가 적을 때 과대 확대를 막고 작은 단어의 가독성을 유지한다.
 - **폭 제한**: 패널 폭을 다 쓰면 단어가 한 줄로 늘어서 구름이 아니라 띠가 된다. `cloudWidth` 로 감아
   여러 줄을 만든다. 반대로 세로가 짧은 화면에서는 폭을 넓혀 줄 수를 줄인다(세로 넘침 방지).
 - **색은 두 개뿐**: 단독 1등 칩만 `blue` 필 + `white` 글자, 나머지는 글래스 칩 + `ink` 글자.
@@ -153,7 +153,15 @@ QR 은 스캔 가독성이 재질보다 우선이라 대기 화면과 동일하�
   나선·물리엔진 배치는 겹침 위험과 성능 때문에 쓰지 않는다. 겹침 0 이 가독성보다 앞선다.
 - **모션**: 새로 등장한 단어만 `cloud-in`(opacity + scale). 크기 변화는 `font-size` 라 레이아웃 속성이므로
   애니메이션하지 않고 즉시 반영한다(AGENTS 1절). reduced-motion 은 전역 규칙이 처리한다.
-- 객관식은 이 뷰를 쓰지 않는다. 항상 막대다.
+- 결과 공개 시 객관식은 막대, 주관식은 워드클라우드로 고정한다. 관리자와 개발 패널의 뷰 전환 버튼은 없다.
+- `cloudWord`: size `clamp(22px, 2.2vw, 42px)`, weight 600, leading 1.2, tracking -0.01em. `cloudLead`는 weight 700.
+
+### 결과 공개 전 선택지
+
+객관식 질문 선택 직후부터 A~E와 선택지를 표시한다. 결과 공개 전에는 막대, 득표수, 퍼센트를 숨긴다.
+선택지 열은 `max-content minmax(0, 1fr)`로 키 옆에 붙이고 남은 폭을 라벨에 배정한다.
+- `screenOption`: size `clamp(32px, 4vw, 80px)`, weight 700, leading 1.25, tracking -0.01em.
+- `screenOptionKey`: size `clamp(24px, 2.4vw, 46px)`, weight 500, leading 1.2, tracking 0.
 
 ## 정렬
 
