@@ -115,6 +115,9 @@ export const layout = {
   cloudWords: 30, // 상위 N
   cloudFitWords: 13, // 이 개수일 때 최대 크기. 더 많으면 전체를 줄여 패널을 넘지 않게 한다
   qrRatio: 0.38, // 화면 짧은 변 대비 QR 크기
+  // 클로징(홍보) 화면. 로고가 주인공이고 QR 은 보조라 대기 화면 QR 보다 작게 둔다.
+  closingLogoMax: 'min(72%, 1180px)',
+  closingQrRatio: 0.62, // 대기 QR 대비 비율
   breakpoints: {
     xs: 320, sm: 390, md: 768, lg: 1024, xl: 1280,
     '2xl': 1440, '3xl': 1920, '4xl': 2560, '5xl': 3840,

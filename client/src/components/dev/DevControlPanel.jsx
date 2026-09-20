@@ -107,6 +107,7 @@ export default function DevControlPanel() {
         <Btn disabled={!next} onClick={() => next && run('set_question', next.id)}>다음 질문</Btn>
         <Btn onClick={() => run('cover')}>표지 화면</Btn>
         <Btn onClick={() => run('standby')}>QR 열기</Btn>
+        <Btn onClick={() => run('closing')}>클로징 화면</Btn>
         <Btn
           disabled={current?.type !== 'text'}
           onClick={() => run(view === 'cloud' ? 'view_bars' : 'view_cloud')}

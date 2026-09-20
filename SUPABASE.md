@@ -14,7 +14,7 @@ voltup-live 백엔드 규약. 정본 SQL은 `supabase/migrations/`, 실행 편�
 |---|---|---|
 | `questions` | id, order_no(unique), type(choice/text), title | 질문 순서는 order_no |
 | `options` | id, question_id, order_no, label | unique(question_id, order_no) |
-| `sessions` | id, active_question_id, voting_open, results_visible, status(standby/live/ended/cover), updated_at | 제어 행 1개만 운용 |
+| `sessions` | id, active_question_id, voting_open, results_visible, status(standby/live/ended/cover/closing), updated_at | 제어 행 1개만 운용 |
 | `votes` | id, question_id, option_id, text_value, voter_key, created_at | unique(question_id, voter_key) |
 
 - `votes_one_answer` 체크: `option_id`와 `text_value`는 정확히 하나만 채운다.

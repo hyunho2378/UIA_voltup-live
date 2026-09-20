@@ -98,6 +98,9 @@ export default function Preview() {
           <Frame label="대기 / QR" w={1920} h={1080} scale={0.42}>
             <ScreenView standby voteUrl={VOTE_URL} qrSize={SCREEN_QR} />
           </Frame>
+          <Frame label="클로징 / 홍보" w={1920} h={1080} scale={0.42}>
+            <ScreenView closing qrSize={SCREEN_QR} />
+          </Frame>
           <Frame label="결과 / 객관식 박빙" w={1920} h={1080} scale={0.42}>
             <ScreenView question={q1} results={mockResults.close} liveCount={mockCounts.close} resultsVisible />
           </Frame>

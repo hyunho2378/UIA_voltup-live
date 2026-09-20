@@ -16,6 +16,9 @@ import {
 
 const ALPHA = 'ABCDEFGH';
 
+// 클로징 QR 이 가리키는 곳. 청중 투표 URL(VITE_VOTE_SHORT_URL)과 무관한 별도 주소다.
+const CLOSING_URL = 'https://wgjforum.kr/kor/sub03/registration.html';
+
 export function useQrSize() {
   const [size, setSize] = useState(320);
   useEffect(() => {
@@ -54,6 +57,25 @@ function CoverPlate() {
       <h1 className="balance mt-sub text-screenQuestion text-ink">
         <Ko>청중과 함께 그려보는 / 미래의 대학</Ko>
       </h1>
+    </div>
+  );
+}
+
+// 클로징(홍보). 교수님 마무리 뒤에 띄우는 마지막 화면이다.
+// 로고와 QR 은 둘 다 오브젝트라 가운데 배치를 허용한다(DESIGN 정렬 예외, QR 플레이트와 같은 근거).
+// QR 은 스캔 가독성이 재질보다 우선이라 대기 화면과 동일하게 흰 플레이트 위에 올린다.
+function ClosingPlate({ url, size }) {
+  return (
+    <div className="plate-in flex flex-1 flex-col items-center justify-center gap-4xl">
+      <img
+        src="/images/wgj-2026.png"
+        alt="2026 세계경주포럼"
+        className="w-full object-contain"
+        style={{ maxWidth: layout.closingLogoMax }}
+      />
+      <div className="rounded-lg bg-white p-2xl">
+        <QRCodeCanvas value={url} size={size} level="M" includeMargin={false} />
+      </div>
     </div>
   );
 }
@@ -118,7 +140,10 @@ function BarChart({ items, totalVotes, highlight, isText }) {
           // column-gap 을 쓰면 행 hairline 이 열 사이에서 끊긴다. 간격은 셀 왼쪽 padding 으로 준다.
           columnGap: 0,
           gridAutoRows: '1fr',
-          minHeight: `calc(${layout.chartRowMin} * ${items.length})`,
+          // 선택지가 6개가 되면 행 최소높이 합이 패널을 넘어 세로로 잘렸다(1440x900 기준 77px 초과).
+          // min(…, 100%) 로 상한을 두어 공간이 모자라면 행이 줄어들게 한다.
+          // 여유가 있을 때의 행 높이는 그대로다.
+          minHeight: `min(calc(${layout.chartRowMin} * ${items.length}), 100%)`,
           maxHeight: `calc(${layout.chartRowMax} * ${items.length})`,
         }}
       >
@@ -175,9 +200,11 @@ export function ScreenView({
   liveCount = 0,
   standby = false,
   cover = false,
+  closing = false,
   resultsVisible = true,
   resultsView = 'bars',
   voteUrl = '',
+  closingUrl = CLOSING_URL,
   qrSize = 320,
 }) {
   // 집계는 반드시 지금 띄운 질문의 것이어야 한다. 다른 질문 집계면 없는 것으로 친다.
@@ -201,6 +228,8 @@ export function ScreenView({
           <QrPlate key="standby" url={voteUrl} size={qrSize} />
         ) : cover ? (
           <CoverPlate key="cover" />
+        ) : closing ? (
+          <ClosingPlate key="closing" url={closingUrl} size={Math.round(qrSize * layout.closingQrRatio)} />
         ) : (
           <div key={`live-${question?.id ?? ''}`} className="enter flex flex-1 flex-col">
             <div className="flex items-start justify-between gap-2xl">
@@ -294,6 +323,7 @@ export default function Screen() {
       liveCount={liveCount}
       standby={session?.status === 'standby'}
       cover={session?.status === 'cover'}
+      closing={session?.status === 'closing'}
       resultsVisible={Boolean(session?.results_visible)}
       resultsView={session?.results_view ?? 'bars'}
       voteUrl={import.meta.env.VITE_VOTE_SHORT_URL || `${window.location.origin}/vote`}
