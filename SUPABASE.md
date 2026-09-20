@@ -106,3 +106,18 @@ anon(청중)에게 허용되는 것은 이것뿐이다.
 ## 무료 티어 무활동 자동 정지
 
 며칠간 요청이 없으면 프로젝트가 자동 정지(pause)된다. `client/api/keep-alive.js` + Vercel Cron(`client/vercel.json`, 매일 03:00 UTC)이 `sessions`를 read only 로 찔러 활동을 유지한다. read only(쓰기 없음). 상세는 `client/README.md` "Supabase 정지 방지" 참고.
+
+## 시작 상태를 표지로 되돌리기 (운영 작업)
+
+세션 기본값은 표지(`cover`)다. `supabase/seed.sql` 은 `on conflict (id) do nothing` 이라
+**이미 존재하는 세션 행의 status 는 코드가 자동으로 바꾸지 않는다.** 운영 DB 의 기존 행이 `standby` 로
+남아 있으면 링크를 열어도 QR 이 먼저 뜬다. SQL Editor 에서 한 번 실행한다.
+
+```sql
+update public.sessions
+   set status = 'cover', voting_open = false, results_visible = false
+ where id = '00000000-0000-0000-0000-000000000001';
+```
+
+행사 당일 순서: 표지 → 어드민 "QR 열기"(status `standby`) → 질문 진행(`live`) → 종료(`ended`).
+어드민 "전체 초기화"는 표지 상태로 되돌린다.

@@ -14,7 +14,8 @@ const CONN = {
   disconnected: { dot: 'bg-ink2', text: '끊김' },
 };
 
-const STATUS = { standby: '대기', live: '진행 중', ended: '종료', cover: '커버' };
+// standby 는 "대형화면에 QR 이 떠 있는 상태"다. 진행자가 보는 말로 적는다.
+const STATUS = { cover: '표지', standby: 'QR 공개', live: '진행 중', ended: '종료' };
 
 /** 표시 전용. Supabase 도 /api 도 모른다. */
 export function AdminView({
@@ -98,13 +99,16 @@ export function AdminView({
         다음 질문
       </GlassButton>
 
-      <GlassButton disabled={busy} onClick={() => onAction('cover')}>
-        커버 화면
-      </GlassButton>
-
-      <GlassButton disabled={busy} onClick={() => onAction('standby')}>
-        대기 화면
-      </GlassButton>
+      {/* 진행 순서 그대로 둔다. 표지로 시작해서 QR 을 여는 게 행사 당일 순서다.
+          둘 다 어느 상태에서든 누를 수 있다. 리허설 중 표지로 되돌아가는 일이 있기 때문이다. */}
+      <div className="grid grid-cols-2 gap-md">
+        <GlassButton prominent={session?.status === 'cover'} disabled={busy} onClick={() => onAction('cover')}>
+          표지 화면
+        </GlassButton>
+        <GlassButton prominent={session?.status === 'standby'} disabled={busy} onClick={() => onAction('standby')}>
+          QR 열기
+        </GlassButton>
+      </div>
 
       <Glass variant="regular" radius="xl" className="p-panel">
         <p className="flex items-center gap-sm text-body text-ink">
@@ -113,7 +117,7 @@ export function AdminView({
         </p>
         <p className="mt-md text-title text-ink tabular">{count}</p>
         <p className="text-caption text-ink">응답</p>
-        <p className="mt-md text-caption text-ink">{STATUS[session?.status ?? 'standby']}</p>
+        <p className="mt-md text-caption text-ink">{STATUS[session?.status ?? 'cover']}</p>
         {failed ? <p className="mt-md text-caption text-ink">제어에 실패했어요. 다시 눌러 주세요</p> : null}
         {note ? <p className="mt-md text-caption text-ink">{note}</p> : null}
         <button

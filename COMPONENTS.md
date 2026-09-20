@@ -27,6 +27,12 @@
   실제 구조와 1:1이 아니다.
 - **`LiveCount.jsx`** — 응답 수 실시간 표시.
 
+## 내비게이션 (components/nav)
+- **`NavFab.jsx`** 운영자 전용 이동 도구. 우하단 고정. 기본은 "메뉴" 캡슐 하나이고 누르면 대형화면·관리자·투표 화면
+  목록이 열린다. 현재 위치 항목은 blue 필. `/`, `/screen`, `/admin`, `/admin/login` 에서만 마운트되고
+  `/vote`·`/offline`·404 에는 DOM 에 존재하지 않는다(pathname 판정). F 키 전체화면 토글도 이 컴포넌트가 들고 있다.
+  전체화면 중에는 스스로 숨는다. 아이콘 금지 규칙에 따라 라벨은 전부 텍스트다.
+
 ## 어드민 (components/admin)
 - **`QuestionList.jsx`** — 질문 목록, 현재 질문 표시, 클릭으로 이동.
 - **`SessionControls.jsx`** — 투표 열기/닫기, 결과 공개/숨김, 다음/이전.

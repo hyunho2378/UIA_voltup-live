@@ -68,7 +68,9 @@ export async function resetVotes(admin, scope, questionId) {
     if (error) return { status: 500, body: { error: error.message } };
     const { data, error: sessionError } = await admin
       .from('sessions')
-      .update({ status: 'standby', voting_open: false, results_visible: false })
+      // 전체 초기화는 "처음으로 되돌리기"다. 시작 상태는 표지이므로 cover 로 보난다.
+      // standby 로 보내면 초기화만 했는데 QR 이 저절로 열려버린다.
+      .update({ status: 'cover', voting_open: false, results_visible: false })
       .eq('id', SESSION_ID)
       .select()
       .single();

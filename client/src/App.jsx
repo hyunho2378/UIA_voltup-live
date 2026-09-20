@@ -9,6 +9,7 @@ import Admin from './routes/Admin.jsx';
 import Offline from './routes/Offline.jsx';
 import NotFound from './routes/NotFound.jsx';
 import DevControlPanel from './components/dev/DevControlPanel.jsx';
+import NavFab from './components/nav/NavFab.jsx';
 import Preview from './routes/Preview.jsx';
 
 // 쿠키는 httpOnly 라 JS 로 못 읽는다. 서버에 한 번 물어본다.
@@ -40,6 +41,8 @@ export default function App() {
   return (
     <SessionProvider>
       {import.meta.env.DEV && <DevControlPanel />}
+      {/* Routes 와 형제 레벨. 라우트가 바뀜어도 재마운트되지 않고, 어느 경로에서 띄울지는 NavFab 이 직접 정한다. */}
+      <NavFab />
       <Routes>
         {/* 청중은 QR 로만 들어온다. 루트로 직접 오는 건 운영자뿐이라 "/" 를 대형화면으로 둔다.
             리다이렉트를 쓰지 않는다. 주소창이 바뀜지 않아야 하고, 재마운트로 realtime 소켓이 다시 붙는 과정을 만들지 않기 위해서다. */}

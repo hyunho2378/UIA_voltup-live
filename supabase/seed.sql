@@ -1,8 +1,12 @@
 -- voltup-live · seed (개발용). 비파괴: ON CONFLICT DO NOTHING.
 -- 실제 문안 확정 시 SOURCE.md 원문으로 교체(윤문 금지). 더미는 '[더미]' 접두사.
 
+-- 시작 상태는 표지(cover). 포럼 시작 전 링크를 열면 QR 이 아니라 표지가 떠야 한다.
+-- QR 은 어드민 "QR 열기"(status='standby')로 명시적으로 연다.
+-- 주의: on conflict do nothing 이라 이미 존재하는 행은 이 값으로 바뀌지 않는다.
+-- 운영 DB 의 기존 행은 사람이 SQL Editor 에서 한 번 UPDATE 해야 한다(SUPABASE.md 참고).
 insert into public.sessions (id, status)
-values ('00000000-0000-0000-0000-000000000001', 'standby')
+values ('00000000-0000-0000-0000-000000000001', 'cover')
 on conflict (id) do nothing;
 
 insert into public.questions (id, order_no, type, title) values

@@ -105,8 +105,8 @@ export default function DevControlPanel() {
         <Btn onClick={() => run(open ? 'close_voting' : 'open_voting')}>{open ? '투표 닫기' : '투표 열기'}</Btn>
         <Btn onClick={() => run(shown ? 'hide_results' : 'show_results')}>{shown ? '결과 숨기기' : '결과 공개'}</Btn>
         <Btn disabled={!next} onClick={() => next && run('set_question', next.id)}>다음 질문</Btn>
-        <Btn onClick={() => run('cover')}>커버로</Btn>
-        <Btn onClick={() => run('standby')}>대기로</Btn>
+        <Btn onClick={() => run('cover')}>표지 화면</Btn>
+        <Btn onClick={() => run('standby')}>QR 열기</Btn>
         <Btn
           disabled={current?.type !== 'text'}
           onClick={() => run(view === 'cloud' ? 'view_bars' : 'view_cloud')}

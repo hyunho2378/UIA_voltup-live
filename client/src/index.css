@@ -286,3 +286,71 @@
     border-color: theme('colors.ink');
   }
 }
+
+/* ── 운영자 이동 FAB ──────────────────────────────────────
+   청중 화면(/vote)에는 마운트되지 않는다. 전체화면일 때는 숨는다.
+   GlassRoot 바깥(App 레벨)에 있어 WebGL 글래스를 못 쓴다. CSS 글래스 폴백과 같은 재질을 쓴다.
+   concentric: 메뉴 radius lg(24) = 항목 radius md(16) + 메뉴 padding sm(8). */
+.nav-fab {
+  position: fixed;
+  right: theme('spacing.xl');
+  bottom: theme('spacing.xl');
+  z-index: theme('zIndex.overlay');
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: theme('spacing.sm');
+}
+.nav-fab-toggle,
+.nav-fab-menu {
+  background: rgba(255, 255, 255, 0.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  backdrop-filter: blur(20px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65), 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+.nav-fab-toggle {
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  font-size: theme('fontSize.caption[0]');
+  min-height: theme('minHeight.touch');
+  padding: 0 theme('spacing.base');
+  border-radius: theme('borderRadius.pill');
+  color: theme('colors.ink');
+  transition: transform theme('transitionDuration.fast') theme('transitionTimingFunction.out');
+}
+.nav-fab-menu {
+  display: flex;
+  flex-direction: column;
+  gap: theme('spacing.xs');
+  padding: theme('spacing.sm');
+  border-radius: theme('borderRadius.lg');
+  min-width: 160px;
+}
+.nav-fab-item {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  font-size: theme('fontSize.caption[0]');
+  text-align: left;
+  min-height: theme('minHeight.touch');
+  padding: 0 theme('spacing.md');
+  border-radius: theme('borderRadius.md');
+  background: transparent;
+  color: theme('colors.ink');
+  transition: transform theme('transitionDuration.fast') theme('transitionTimingFunction.out');
+}
+.nav-fab-item-here {
+  background: theme('colors.blue');
+  color: theme('colors.white');
+}
+.nav-fab-hint {
+  margin: 0;
+  padding: theme('spacing.xs') theme('spacing.md') 0;
+  font-size: theme('fontSize.caption[0]');
+  color: theme('colors.ink');
+}
