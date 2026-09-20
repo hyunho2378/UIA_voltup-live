@@ -67,11 +67,12 @@ function CoverPlate() {
 function ClosingPlate({ url, size }) {
   return (
     <div className="plate-in flex flex-1 flex-col items-center justify-center gap-4xl">
+      {/* min-h-0 이 없으면 flex 아이템이 줄지 않아 세로가 짧은 화면에서 패널을 넘는다. */}
       <img
         src="/images/wgj-2026.png"
         alt="2026 세계경주포럼"
-        className="w-full object-contain"
-        style={{ maxWidth: layout.closingLogoMax }}
+        className="min-h-0 w-full object-contain"
+        style={{ maxWidth: layout.closingLogoMax, maxHeight: layout.closingLogoMaxH }}
       />
       <div className="rounded-lg bg-white p-2xl">
         <QRCodeCanvas value={url} size={size} level="M" includeMargin={false} />

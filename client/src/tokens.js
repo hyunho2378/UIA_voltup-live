@@ -117,6 +117,9 @@ export const layout = {
   qrRatio: 0.38, // 화면 짧은 변 대비 QR 크기
   // 클로징(홍보) 화면. 로고가 주인공이고 QR 은 보조라 대기 화면 QR 보다 작게 둔다.
   closingLogoMax: 'min(72%, 1180px)',
+  // 폭만 제한하면 세로가 짧은 화면에서 로고+QR 합이 패널을 넘는다(1440x900 실측 34px 초과).
+  // 백분율은 부모 높이가 확정되지 않아 무시된다. 뷰포트 기준(vh)으로 둔다.
+  closingLogoMaxH: '40vh',
   closingQrRatio: 0.62, // 대기 QR 대비 비율
   breakpoints: {
     xs: 320, sm: 390, md: 768, lg: 1024, xl: 1280,
