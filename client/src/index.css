@@ -62,6 +62,12 @@
   overflow: hidden;
   isolation: isolate;
 }
+/* 대형화면 전용. min-height 만 두면 패널 높이가 내용에 끌려가 화면 밖으로 자란다(실측 22px 초과).
+   높이를 확정해야 안쪽 flex 체인이 "남은 높이"를 알고, 선택지·워드클라우드가 그 안으로 줄어든다.
+   /vote 와 /admin 은 세로로 스크롤되는 것이 정상이라 이 클래스를 쓰지 않는다. */
+.glass-root-fixed {
+  height: 100dvh;
+}
 .glass-bg {
   position: absolute;
   inset: 0;
@@ -381,4 +387,17 @@
 .cloud-chip-lead {
   background: theme('colors.blue');
   border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* ── 결과 공개 전 선택지 카드 ────────────────────────────────
+   행 사이 hairline 은 20m 거리 프로젝터에서 보이지 않았다. 선을 진하게 하는 대신 항목마다
+   면을 준다. 재질은 워드클라우드 칩과 같다(패널 안쪽이라 WebGL 글래스를 쓸 수 없다).
+   선택지는 아직 아무도 고르지 않은 상태라 필을 채우지 않는다. 채우면 선택된 것처럼 읽힌다. */
+.option-card {
+  border-radius: theme('borderRadius.lg');
+  background: rgba(255, 255, 255, 0.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  backdrop-filter: blur(20px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65), 0 10px 30px rgba(0, 0, 0, 0.12);
 }

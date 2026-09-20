@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "bg": "node scripts/make-bg.mjs",
-    "dev:api": "vercel dev"
+    "dev:api": "vercel dev",
+    "brand": "node scripts/brand-assets.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",

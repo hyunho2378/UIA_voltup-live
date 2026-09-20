@@ -14,11 +14,17 @@ export const colors = {
   // 비1등 막대. 트랙과 명도가 확실히 갈려야 길이를 읽을 수 있다.
   inkSoft: '#39404A',
 
+  // 브랜드 자산(로고·그래픽) 재도색 램프. 원본은 색이 16~500개라 그대로 쓰면 팔레트 규칙이 무너진다.
+  // 명도만 남기고 색상은 blue 계열 하나로 통일한다. 위계는 명도로만 만든다는 규칙과 같은 근거다.
+  // scripts/brand-assets.mjs 가 이 배열만 읽어 SVG 를 다시 칠한다.
+  brandRamp: ['#0A2557', '#12408F', '#1F6FFF', '#74A6FF', '#B7CFFF', '#E2ECFF'],
+
   // 글래스 위에 얹는 반투명 표면. 재질 값이라 alpha 를 포함한다.
   optionFill: 'rgba(255, 255, 255, 0.35)',
   optionBorder: 'rgba(255, 255, 255, 0.5)',
   barTrack: 'rgba(0, 0, 0, 0.08)', // 막대 트랙. fill 보다 확실히 연해야 한다
-  rowLine: 'rgba(0, 0, 0, 0.08)',
+  // 0.08 은 20m 프로젝터에서 사라졌다. 결과 행 구분선만 진하게 둔다(옵션 목록은 카드로 바뀌어 선이 없다).
+  rowLine: 'rgba(0, 0, 0, 0.16)',
 };
 
 // 제목 700, 본문 400~500. 폰과 20m 프로젝터 양쪽에서 읽혀야 한다.
@@ -125,6 +131,17 @@ export const layout = {
   cloudWords: 30, // 상위 N
   cloudLengthRef: 5, // 이 길이를 넘으면 최댓값만 길이에 반비례해 축소
   cloudFitWords: 8, // 이 개수일 때 최대 크기. 더 많으면 전체를 줄여 패널을 넘지 않게 한다
+  // 결과 공개 전 선택지 카드. 행 사이 간격과 안쪽 여백.
+  optionCardGap: 'clamp(10px, 1.1vw, 20px)',
+  optionCardX: 'clamp(20px, 2vw, 40px)',
+  optionCardY: 'clamp(12px, 1.2vw, 24px)',
+
+  // 표지 브랜드 자산. 로고·타이틀은 왼쪽 열, 그래픽은 오른쪽 열이다.
+  coverLogoMax: 'clamp(96px, 9vw, 190px)',
+  coverTitleMax: 'min(52vw, 820px)',
+  coverGraphicMax: 'min(30%, 420px)',
+  coverGraphicMaxH: '78vh',
+
   qrRatio: 0.38, // 화면 짧은 변 대비 QR 크기
   // 클로징(홍보) 화면. 로고가 주인공이고 QR 은 보조라 대기 화면 QR 보다 작게 둔다.
   closingLogoMax: 'min(72%, 1180px)',

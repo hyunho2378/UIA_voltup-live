@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import GlassRoot from '../components/glass/GlassRoot.jsx';
 import Glass from '../components/glass/Glass.jsx';
@@ -15,6 +15,30 @@ import {
 } from '../lib/supabase.js';
 
 const ALPHA = 'ABCDEFGH';
+
+// 넣은 것이 패널을 넘치면 줄여서 맞춤다. 계산식으로는 맞출 수 없다. 단어 수·글자 수·줄바꿈
+// 위치·선택지 개수가 매번 달라져서, 그려 놓고 실측해 줄이는 것만이 모든 경우를 덮는다.
+// --fit 는 이 요소 안 글자 크기에 곱해진다. 8번까지만 줄인다(0.92^8 = 0.51배).
+// 그 아래로 내려가면 20m 에서 읽을 수 없어 줄이나 마나다.
+function useFitScale(ref, signature) {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const fit = () => {
+      let s = 1;
+      el.style.setProperty('--fit', '1');
+      for (let i = 0; i < 8 && el.scrollHeight > el.clientHeight + 1; i += 1) {
+        s *= 0.92;
+        el.style.setProperty('--fit', String(s));
+      }
+    };
+    fit();
+    // 창 크기가 바뀌면 줄 수와 행 높이가 달라진다. 프로젝터 연결·전체화면 진입이 여기에 해당한다.
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref, signature]);
+}
 
 // 클로징 QR 이 가리키는 곳. 청중 투표 URL(VITE_VOTE_SHORT_URL)과 무관한 별도 주소다.
 const CLOSING_URL = 'https://wgjforum.kr/kor/sub03/registration.html';
@@ -46,17 +70,42 @@ function QrPlate({ url, size }) {
   );
 }
 
-// 오프닝(커버). 결과 패널과 같은 배경·Glass·좌측 정렬을 그대로 쓴다. 모듈 시작을 알리는 용도라
-// 부제·버튼·QR·초록 점 전부 없다. 등장은 QR 플레이트와 같은 rise-in(.plate-in, 320ms)을 재사용한다.
-// 사회자 페이스에 맞춰 어드민이 수동으로 다음 상태로 넘긴다(자동 타이머 없음).
+// 오프닝(커버). 결과 패널과 같은 배경·Glass 를 그대로 쓰고 내용만 다르다.
+// 브랜드 자산 3개를 올린다. 로고·타이틀은 왼쪽 열, 그래픽은 오른쪽 열이다.
+// 세 자산 모두 글래스 패널 "안"에 둔다. 뒤에 두면 굴절·blur 를 타서 뚜렷해지고,
+// 라이브러리가 root 직계 자식만 배경으로 잡는 구조라 중간 래퍼도 못 둔다.
+// 등장은 QR 플레이트와 같은 rise-in(.plate-in, 320ms)을 재사용한다.
 function CoverPlate() {
   return (
-    <div className="plate-in flex flex-1 flex-col justify-center">
-      <p className="text-screenEyebrow text-ink">코리아 넥스트 임팩트 포럼</p>
-      <p className="text-screenEyebrowWide text-ink">INTERACTIVE SESSION</p>
-      <h1 className="balance mt-sub text-screenQuestion text-ink">
-        <Ko>청중과 함께 그려보는 / 미래의 대학</Ko>
-      </h1>
+    <div className="plate-in flex flex-1 items-center gap-4xl">
+      <div className="flex min-w-0 flex-1 flex-col justify-center">
+        {/* 로고·타이틀은 오브젝트라 이미지로 둔다. 원본 색을 그대로 쓰지 않고
+            brandRamp 로 다시 칠한 산출물이다(scripts/brand-assets.mjs). */}
+        <img
+          src="/images/brand/logo.svg"
+          alt="UIA"
+          className="w-full object-contain object-left"
+          style={{ maxWidth: layout.coverLogoMax }}
+        />
+        <img
+          src="/images/brand/title.svg"
+          alt="2026 UIA x 한양대학교 NEXT IMPACT FORUM"
+          className="mt-2xl w-full object-contain object-left"
+          style={{ maxWidth: layout.coverTitleMax }}
+        />
+        <p className="mt-2xl text-screenEyebrowWide text-ink">INTERACTIVE SESSION</p>
+        <h1 className="balance mt-sub text-screenQuestion text-ink">
+          <Ko>청중과 함께 그려보는 / 미래의 대학</Ko>
+        </h1>
+      </div>
+      {/* 세로로 긴 그림이라 패널 높이를 기준으로 잡는다. 문자열이 아니라 장식이므로 alt 는 비운다. */}
+      <img
+        src="/images/brand/graphic.webp"
+        alt=""
+        aria-hidden="true"
+        className="min-h-0 shrink-0 self-center object-contain"
+        style={{ maxWidth: layout.coverGraphicMax, maxHeight: layout.coverGraphicMaxH }}
+      />
     </div>
   );
 }
@@ -84,8 +133,10 @@ function ClosingPlate({ url, size }) {
 // 같은 집계를 다르게 배치하는 뷰일 뿐이다. 배경도 보더도 없다. 글래스 위에 텍스트만 얹는다.
 // 위계는 크기로만 만든다. 색은 ink 단색이고 최다 단어만 blue 다.
 function WordCloud({ items, highlight }) {
+  const boxRef = useRef(null);
   const top = Math.max(1, ...items.map((it) => it.count ?? 0));
   const words = items.slice(0, layout.cloudWords);
+  useFitScale(boxRef, words.map((w) => `${w.word}:${w.count ?? 0}`).join('|'));
 
   // 큰 단어가 가운데로 오게 지그재그로 넣는다. 나선이나 물리엔진 배치는 겹침과 성능 때문에 쓰지 않는다.
   const arranged = [];
@@ -108,7 +159,10 @@ function WordCloud({ items, highlight }) {
 
   return (
     <div
-      className="mx-auto flex flex-1 flex-wrap content-center items-center justify-center"
+      ref={boxRef}
+      // min-h-0 과 overflow-hidden 이 없으면 넘친 만큼 패널이 늘어나 화면이 스크롤된다.
+      // 넘침을 컨테이너 안에 가둬야 위 useLayoutEffect 의 높이 측정이 성립한다.
+      className="mx-auto flex min-h-0 flex-1 flex-wrap content-center items-center justify-center overflow-hidden"
       style={{ gap: layout.cloudGap, marginTop: layout.screenChartTop, maxWidth: layout.cloudWidth }}
     >
       {arranged.map((w) => {
@@ -126,7 +180,7 @@ function WordCloud({ items, highlight }) {
             style={{
               // clamp(최소, 최대 * sqrt(비율), 최대). 꼬리 단어는 최소값에 붙고 1등만 최대값에 닿는다.
               // 하한은 길이 보정을 받지 않는다. 받게 했더니 긴 단어가 18px 까지 내려가 안 보였다.
-              fontSize: `min(${max}, max(${min}, ${cap}))`,
+              fontSize: `calc(min(${max}, max(${min}, ${cap})) * var(--fit, 1))`,
               fontWeight: count >= median ? typography.cloudLead.weight : typography.cloudWord.weight,
               letterSpacing: typography.cloudWord.tracking,
               lineHeight: typography.cloudWord.leading,
@@ -143,34 +197,39 @@ function WordCloud({ items, highlight }) {
 // 투표는 열렸고 결과는 아직 공개 전일 때 띄운다. 청중은 20m 밖이라 폰을 보기 전에 무엇을 고르는지
 // 대형화면에서 먼저 읽는다. 집계는 보여주지 않는다. 막대와 같은 타이포·행 구분선을 쓴다.
 function OptionList({ options }) {
+  const boxRef = useRef(null);
+  // 선택지가 5개면 1440x900 에서 22px 넘쳐다. 카드는 글자보다 작아질 수 없으니
+  // 워드클라우드와 같은 방식으로 글자를 줄인다. 선택지가 몇 개가 되든 넘치지 않는다.
+  useFitScale(boxRef, options.map((o) => o.label).join('|'));
   return (
-    <div className="flex flex-1 flex-col justify-center" style={{ marginTop: layout.screenChartTop }}>
-      <div
-        className="grid flex-1"
-        style={{
-          gridTemplateColumns: 'max-content minmax(0, 1fr)',
-          columnGap: 0,
-          gridAutoRows: '1fr',
-          minHeight: `min(calc(${layout.chartRowMin} * ${options.length}), 100%)`,
-          maxHeight: `calc(${layout.chartRowMax} * ${options.length})`,
-        }}
-      >
-        {options.map((o, i) => {
-          const line = i ? 'border-t border-rowLine' : '';
-          return (
-            <div key={o.id} className="contents">
-              <div className={`${line} flex items-center`}>
-                <span className="text-screenOptionKey text-ink tabular">{ALPHA[i]}</span>
-              </div>
-              <div className={`${line} flex items-center`} style={{ paddingLeft: layout.chartGap }}>
-                <p className="text-screenOption text-ink">
-                  <Ko>{o.label}</Ko>
-                </p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+    <div
+      ref={boxRef}
+      className="flex min-h-0 flex-1 flex-col justify-center overflow-hidden"
+      style={{ marginTop: layout.screenChartTop, gap: layout.optionCardGap }}
+    >
+      {options.map((o, i) => (
+        <div
+          key={o.id}
+          className="option-card flex shrink-0 items-center"
+          style={{
+            padding: `calc(${layout.optionCardY} * var(--fit, 1)) ${layout.optionCardX}`,
+            gap: layout.chartGap,
+          }}
+        >
+          <span
+            className="text-screenOptionKey text-ink tabular"
+            style={{ fontSize: `calc(${typography.screenOptionKey.size} * var(--fit, 1))` }}
+          >
+            {ALPHA[i]}
+          </span>
+          <p
+            className="text-screenOption text-ink"
+            style={{ fontSize: `calc(${typography.screenOption.size} * var(--fit, 1))` }}
+          >
+            <Ko>{o.label}</Ko>
+          </p>
+        </div>
+      ))}
     </div>
   );
 }
@@ -275,8 +334,11 @@ export function ScreenView({
   const cloud = isText;
 
   return (
-    <GlassRoot background="/images/bg/ambient-screen.webp" className="flex items-stretch justify-center p-4xl">
-      <Glass variant="screen" radius="screen" className="flex w-full max-w-screen flex-col p-4xl">
+    <GlassRoot
+      background="/images/bg/ambient-screen.webp"
+      className="glass-root-fixed flex items-stretch justify-center p-4xl"
+    >
+      <Glass variant="screen" radius="screen" className="flex min-h-0 w-full max-w-screen flex-col p-4xl">
         {standby ? (
           <QrPlate key="standby" url={voteUrl} size={qrSize} />
         ) : cover ? (
@@ -284,7 +346,9 @@ export function ScreenView({
         ) : closing ? (
           <ClosingPlate key="closing" url={closingUrl} size={Math.round(qrSize * layout.closingQrRatio)} />
         ) : (
-          <div key={`live-${question?.id ?? ''}`} className="enter flex flex-1 flex-col">
+          // min-h-0 이 없으면 flex 아이템이 내용 아래로 줄지 못해 패널이 화면 밖으로 자란다.
+          // 선택지 카드가 스스로 줄어들려면 이 줄이 먼저 뚫려 있어야 한다(실측 22px 초과).
+          <div key={`live-${question?.id ?? ''}`} className="enter flex min-h-0 flex-1 flex-col">
             <div className="flex items-start justify-between gap-2xl">
               <h1 className="balance text-screenQuestion text-ink">
                 <Ko>{question?.title ?? ''}</Ko>
