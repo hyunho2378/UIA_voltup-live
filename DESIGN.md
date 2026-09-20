@@ -326,7 +326,10 @@ SVG 를 소스로 두고 WebP 로 래스터화해 `GlassRoot` 에 넘긴다(draw
   - 색: 트랙 `barTrack`(연회색), 비1등 `inkSoft`(진회색), 1등 `blue`. **1등은 채도로, 막대는 명도로 구분한다.** 비1등과 트랙이 같은 색이면 막대 길이를 못 읽는다.
   - **blue 는 "단독 1등"일 때만 쓴다.** 최다값을 가진 항목이 2개 이상(동점)이면 전부 `inkSoft` 로 두어 1등이 없다는 사실을 색으로 드러낸다. 0표(전부 0)도 같은 취급이라 blue 가 0개다. 워드클라우드도 같은 규칙(단독 최다 단어만 blue).
   - 키(A/B/C/D)는 라벨과 별도 노드. `screenKey`, `ink2`. 라벨은 `screenLabel`, `ink`.
-  - 값은 `%`(`screenPct`, `ink`)와 `N표`(`screenVotes`, `ink2`)를 baseline 정렬로 띄워 둔다. 간격 `clamp(12px,1vw,18px)`. 둘 다 tabular-nums.
+  - 값은 `%`(`screenPct`, `ink`)와 `N표`(`screenVotes`, `ink2`)를 baseline 정렬로 띄워 둔다. 간격 `chartValueGap`
+    (`clamp(14px,1.6vw,32px)`, 4K 에서 %와 표가 붙어 보인다는 피드백으로 상한을 18→32px 로 올렸다). 둘 다 tabular-nums.
+    퍼센트 숫자는 `min-width: 3.4ch` + 우측 정렬 고정폭이다 — 자릿수가 다르면(0% vs 100%) 뒤에 오는 표의 시작 위치가
+    행마다 흔들렸다(사용자 피드백: "1.5나 이런 거 다들 위치가 달라"). 고정폭을 주면 표 위치가 모든 행에서 일치한다.
   - 막대 높이 `clamp(28px,2.8vw,56px)`, radius `bar(6)`. 성장은 `transform: scaleX`.
   - **패널이 화면을 채운다.** 결과 패널은 프레임 세로의 78% 이상(실측 91%). 내부는 flex column 으로 질문 / 차트(flex 1) / 참여 수. 행 높이는 `clamp(64px,7vw,110px)` ~ `clamp(120px,14vw,220px)` 사이에서 행 수에 따라 늘어나고, 최대를 넘으면 세로 가운데 정렬한다. 행이 2개든 6개든 패널이 비지 않는다.
   - **결과가 뜬 다음은 질문을 줄인다**(`screenQuestionResult`, clamp(20px,2.2vw,34px)). 이전에는 "줄이지 않고 행을 키운다"였는데,
