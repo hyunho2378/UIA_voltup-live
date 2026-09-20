@@ -76,6 +76,7 @@
 | 역할 | size | weight | leading | tracking |
 |---|---|---|---|---|
 | screenQuestion | `clamp(28px, 3.8vw, 56px)` | 700 | 1.12 | -0.02em |
+| screenQuestionResult | `clamp(20px, 2.2vw, 34px)` | 700 | 1.25 | -0.01em |
 | screenKey | `clamp(16px, 1.5vw, 27px)` | 500 | 1.2 | 0 |
 | screenLabel | `clamp(20px, 1.9vw, 34px)` | 600 | 1.25 | -0.01em |
 | screenPct | `clamp(26px, 2.6vw, 48px)` | 700 | 1.1 | -0.02em |
@@ -318,13 +319,19 @@ SVG 를 소스로 두고 WebP 로 래스터화해 `GlassRoot` 에 넘긴다(draw
 - **결과 차트(대형화면)** - 차트 전체가 **단일 그리드** `auto max-content 1fr auto` (키 / 라벨 / 막대 / 값), column-gap `clamp(20px,2vw,36px)`. 각 행 래퍼는 `display: contents` 라 셀이 부모 그리드에 직접 들어간다.
   - 라벨 열이 `max-content` 이고 전 행이 공유하므로 **막대 시작 x 가 모든 행에서 같다.** 가장 긴 라벨 뒤에만 gap 이 붙는다. 행마다 독립 그리드를 쓰면 시작점이 어긋난다.
   - **대신 선택지 문구를 짧게 쓴다.** 가장 긴 라벨이 열 폭을 정한다.
+  - **객관식과 척도는 같은 BarChart 를 쓴다.** 척도 응답은 `{value, count}` 형태라 `{option_id: String(value), label: String(value), count}`
+    로 변환만 해서 넣는다(`scaleToBarItems`). 따로 히스토그램 컴포넌트를 만들지 않는다 — 사용자 피드백: "다 똑같은 막대바에 .5도 보이게 해야지,
+    왜 저렇게 다 다르게 했냐". 키 열은 생략(`isText` 플래그 재사용, 한 글자짜리 키가 없는 건 둘 다 같다). 0.5 단위를 나중에 다시 없애고
+    1~5 5개로만 돌아가도 같은 컴포넌트에 항목만 줄면 된다.
   - 색: 트랙 `barTrack`(연회색), 비1등 `inkSoft`(진회색), 1등 `blue`. **1등은 채도로, 막대는 명도로 구분한다.** 비1등과 트랙이 같은 색이면 막대 길이를 못 읽는다.
   - **blue 는 "단독 1등"일 때만 쓴다.** 최다값을 가진 항목이 2개 이상(동점)이면 전부 `inkSoft` 로 두어 1등이 없다는 사실을 색으로 드러낸다. 0표(전부 0)도 같은 취급이라 blue 가 0개다. 워드클라우드도 같은 규칙(단독 최다 단어만 blue).
   - 키(A/B/C/D)는 라벨과 별도 노드. `screenKey`, `ink2`. 라벨은 `screenLabel`, `ink`.
   - 값은 `%`(`screenPct`, `ink`)와 `N표`(`screenVotes`, `ink2`)를 baseline 정렬로 띄워 둔다. 간격 `clamp(12px,1vw,18px)`. 둘 다 tabular-nums.
   - 막대 높이 `clamp(28px,2.8vw,56px)`, radius `bar(6)`. 성장은 `transform: scaleX`.
   - **패널이 화면을 채운다.** 결과 패널은 프레임 세로의 78% 이상(실측 91%). 내부는 flex column 으로 질문 / 차트(flex 1) / 참여 수. 행 높이는 `clamp(64px,7vw,110px)` ~ `clamp(120px,14vw,220px)` 사이에서 행 수에 따라 늘어나고, 최대를 넘으면 세로 가운데 정렬한다. 행이 2개든 6개든 패널이 비지 않는다.
-  - 질문 크기는 줄이지 않는다. 비율은 행을 키워서 맞춘다.
+  - **결과가 뜬 다음은 질문을 줄인다**(`screenQuestionResult`, clamp(20px,2.2vw,34px)). 이전에는 "줄이지 않고 행을 키운다"였는데,
+    척도 질문처럼 9행이 되면 행을 키우는 데도 한계가 있고, 청중은 이미 읽고 답한 질문을 결과 화면에서 다시 크게 볼 필요가 없다(사용자 피드백).
+    결과 공개 전(투표 중, 선택지 명시)에는 기존 `screenQuestion`(28~56px) 그대로 크게 둔다.
 - **어드민** - 패널과 컨트롤 버튼 모두 GlassRoot 직계 자식. 768 미만에서 1열로 접힌다.
 
 ### 운영자 이동 FAB (NavFab)

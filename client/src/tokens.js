@@ -46,6 +46,9 @@ export const typography = {
   // 대형화면
   // 한글 볼드 디스플레이는 1.2 미만으로 내리지 않는다.
   screenQuestion: { size: 'clamp(28px, 3.8vw, 56px)', weight: 700, leading: 1.22, tracking: '-0.02em' },
+  // 결과가 뜬 다음의 질문. 청중은 이미 질문을 읽고 답했으니 결과 화면에서는 차트가 주인공이다.
+  // 질문을 이 크기로 줄여 차트(특히 9행짜리 척도 막대)에 세로 공간을 더 준다.
+  screenQuestionResult: { size: 'clamp(20px, 2.2vw, 34px)', weight: 700, leading: 1.25, tracking: '-0.01em' },
   screenKey: { size: 'clamp(20px, 1.5vw, 27px)', weight: 500, leading: 1.2, tracking: '0' },
   screenLabel: { size: 'clamp(20px, 1.9vw, 34px)', weight: 600, leading: 1.25, tracking: '-0.01em' },
   screenPct: { size: 'clamp(26px, 2.6vw, 48px)', weight: 700, leading: 1.1, tracking: '-0.02em' },

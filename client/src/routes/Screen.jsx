@@ -305,48 +305,11 @@ function ScaleHint({ options }) {
   );
 }
 
-// 척도 결과. 1~5 사이 9개 눈금을 다 보여주는 분포다. 색 규칙은 막대와 같다: 단독 최대 눈금만 blue, 동점·0표면 전부 inkSoft.
-function ScaleResult({ items, average, minLabel, maxLabel }) {
-  const maxCount = Math.max(1, ...items.map((it) => it.count ?? 0));
-  const top = Math.max(0, ...items.map((it) => it.count ?? 0));
-  const leaders = items.filter((it) => (it.count ?? 0) === top).length;
-  const highlight = top > 0 && leaders === 1 ? top : null;
-  return (
-    <div className="flex flex-1 flex-col justify-center" style={{ marginTop: layout.screenChartTop }}>
-      <p className="flex items-baseline text-screenPct text-ink tabular" style={{ gap: layout.chartValueGap }}>
-        평균 {average}
-        <span className="text-screenVotes text-ink">점</span>
-      </p>
-      <div className="mt-xl flex flex-1 items-end gap-md" style={{ maxHeight: layout.chartRowMax }}>
-        {items.map((it) => {
-          const count = it.count ?? 0;
-          const h = (count / maxCount).toFixed(4);
-          const lead = highlight !== null && count === highlight;
-          return (
-            <div key={it.value} className="flex h-full flex-1 flex-col items-center justify-end gap-sm">
-              <div className="flex w-full flex-1 items-end overflow-hidden rounded-bar bg-barTrack">
-                <div
-                  className={`w-full rounded-bar ${lead ? 'bg-blue' : 'bg-inkSoft'}`}
-                  style={{ height: '100%', transform: `scaleY(${h})`, transformOrigin: 'bottom' }}
-                />
-              </div>
-              {Number.isInteger(it.value) ? (
-                <span className="text-screenKey text-ink tabular">{it.value}</span>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
-      <div className="mt-md flex items-center justify-between gap-2xl">
-        <p className="text-screenVotes text-ink">
-          <Ko>{minLabel}</Ko>
-        </p>
-        <p className="text-screenVotes text-ink">
-          <Ko>{maxLabel}</Ko>
-        </p>
-      </div>
-    </div>
-  );
+// 척도 결과는 따로 만들지 않는다. 사용자 피드백: "다 또같은 막대바에 .5도 보이게해야지".
+// 아래 BarChart 를 그대로 쓴다(다른 컴포넌트를 따로 만들지 않음). 혹시 나중에 0.5 단위를 다시 없애고
+// 1~5 5개로만 돌아가도 같은 컴포넌트에 항목만 줄면 렜다(사용자 메모: "혹시나 나중에 .5 다시 없애을수도").
+function scaleToBarItems(items) {
+  return items.map((it) => ({ option_id: String(it.value), label: String(it.value), count: it.count ?? 0 }));
 }
 
 function BarChart({ items, totalVotes, highlight, isText }) {
@@ -473,7 +436,13 @@ export function ScreenView({
           <div key={`live-${question?.id ?? ''}`} className="enter flex min-h-0 flex-1 flex-col">
             <div className="flex items-start justify-between gap-2xl">
               <div className="min-w-0">
-                <h1 className="balance text-screenQuestion text-ink">
+                {/* 결과가 뜨 다음에는 질문을 줄인다. 청중은 이미 읽고 답했으니 차트가 주인공이다(사용자 피드백:
+                    "결과일 때는 질문을 줄이면 되쟐아"). 특히 척도 9행 막대처럼 행이 많을 때 세로 공간이 보태된다. */}
+                <h1
+                  className={`balance text-ink ${
+                    resultsVisible && items.length > 0 ? 'text-screenQuestionResult' : 'text-screenQuestion'
+                  }`}
+                >
                   <Ko>{question?.title ?? ''}</Ko>
                 </h1>
                 {isText && !(resultsVisible && items.length > 0) ? (
@@ -491,17 +460,17 @@ export function ScreenView({
               <>
                 {cloud ? (
                   <WordCloud items={items} highlight={highlight} />
-                ) : isScale ? (
-                  <ScaleResult
-                    items={items}
-                    average={matched?.average ?? 0}
-                    minLabel={scaleOptions[0]?.label ?? ''}
-                    maxLabel={scaleOptions[scaleOptions.length - 1]?.label ?? ''}
-                  />
                 ) : (
-                  <BarChart items={items} totalVotes={totalVotes} highlight={highlight} isText={isText} />
+                  <BarChart
+                    items={isScale ? scaleToBarItems(items) : items}
+                    totalVotes={totalVotes}
+                    highlight={highlight}
+                    isText={isText || isScale}
+                  />
                 )}
-                <p className="mt-xl text-screenMeta text-ink tabular">{liveCount}명 참여</p>
+                <p className="mt-xl text-screenMeta text-ink tabular">
+                  {liveCount}명 참여{isScale ? `, 평균 ${matched?.average ?? 0}점` : ''}
+                </p>
               </>
             ) : isScale ? (
               <ScaleHint options={scaleOptions} />
