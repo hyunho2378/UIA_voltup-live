@@ -31,7 +31,9 @@ function useFitScale(ref, signature) {
     const fit = () => {
       let s = 1;
       el.style.setProperty('--fit', '1');
-      for (let i = 0; i < 8 && el.scrollHeight > el.clientHeight + 1; i += 1) {
+      // 8번(0.92^8=0.51배)까지만 줄였더니 브라우저 창이 좋고 낮은 해상도(보통 브라우저 크롬·북마크바가
+      // 세로 공간을 많이 먹는 경우)에서 6개 카드의 마지막 하나가 잘렸다. 14번(0.92^14=0.32배)까지 늘린다.
+      for (let i = 0; i < 14 && el.scrollHeight > el.clientHeight + 1; i += 1) {
         s *= 0.92;
         el.style.setProperty('--fit', String(s));
       }
@@ -211,7 +213,12 @@ function WordCloud({ items, highlight }) {
       // min-h-0 과 overflow-hidden 이 없으면 넘친 만큼 패널이 늘어나 화면이 스크롤된다.
       // 넘침을 컨테이너 안에 가둬야 위 useLayoutEffect 의 높이 측정이 성립한다.
       className="mx-auto flex min-h-0 flex-1 flex-wrap content-center items-center justify-center overflow-hidden"
-      style={{ gap: layout.cloudGap, marginTop: layout.screenChartTop, maxWidth: layout.cloudWidth }}
+      // 이유는 OptionList 와 같다. gap·marginTop 이 --fit 을 안 받으면 고정 여백이 마지막까지 남아 잘릴 수 있다.
+      style={{
+        gap: `calc(${layout.cloudGap} * var(--fit, 1))`,
+        marginTop: `calc(${layout.screenChartTop} * var(--fit, 1))`,
+        maxWidth: layout.cloudWidth,
+      }}
     >
       {arranged.map((w) => {
         const count = w.count ?? 0;
@@ -254,7 +261,12 @@ function OptionList({ options }) {
     <div
       ref={boxRef}
       className="flex min-h-0 flex-1 flex-col justify-center overflow-hidden"
-      style={{ marginTop: layout.screenChartTop, gap: layout.optionCardGap }}
+      // gap과 marginTop 이 --fit 을 안 받으면 폰트를 아무리 줄여도 고정 여백만으로 넘치는 경우가 생긴다
+      // (실측: 브라우저 창이 좋고 낮은 해상도에서 6개 중 마지막 카드가 잘렸다). 둘 다 --fit 에 걸어야 한다.
+      style={{
+        marginTop: `calc(${layout.screenChartTop} * var(--fit, 1))`,
+        gap: `calc(${layout.optionCardGap} * var(--fit, 1))`,
+      }}
     >
       {options.map((o, i) => (
         <div
@@ -361,11 +373,13 @@ function BarChart({ items, totalVotes, highlight, isText }) {
                 </div>
               </div>
               <div className={`${line} flex items-center`} style={{ paddingLeft: layout.chartGap }}>
-                <p
-                  className="flex items-baseline text-screenPct text-ink tabular"
-                  style={{ gap: layout.chartValueGap }}
-                >
-                  {pct}%
+                <p className="flex items-baseline text-screenPct text-ink tabular" style={{ gap: layout.chartValueGap }}>
+                  {/* 고정 폭(3.4ch = "100%" 기준) + 우측 정렬. 원래는 값이 자유 폭이라 0%와 100%의 자릿수가
+                      달라 바로 뒤에 붙는 "표"의 시작 위치가 행마다 미미하게 달라졌다(사용자 피드백: "1.5나
+                      이런 거 다들 위치가 달라"). 고정 폭을 주면 내용이 바뀌어도 "표" 위치가 행간에 항상 일치한다. */}
+                  <span className="inline-block text-right" style={{ minWidth: '3.4ch' }}>
+                    {pct}%
+                  </span>
                   <span className="text-screenVotes text-ink tabular">{count}표</span>
                 </p>
               </div>

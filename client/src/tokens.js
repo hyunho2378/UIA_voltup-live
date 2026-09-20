@@ -122,7 +122,8 @@ export const layout = {
   chartGap: 'clamp(20px, 2vw, 36px)',
   chartRowMin: 'clamp(64px, 7vw, 110px)',
   chartRowMax: 'clamp(120px, 14vw, 220px)',
-  chartValueGap: 'clamp(12px, 1vw, 18px)',
+  // 0%·1표가 붙어 보인다는 피드백(4K 실측). 다른 값들은 vw 스케일이 큰데 이 값만 상한이 낮았다.
+  chartValueGap: 'clamp(14px, 1.6vw, 32px)',
   screenBarHeight: 'clamp(28px, 2.8vw, 56px)',
   screenChartTop: 'clamp(40px, 4vw, 76px)', // 질문과 첫 행 사이
 
