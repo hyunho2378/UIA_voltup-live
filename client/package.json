@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "bg": "node scripts/make-bg.mjs",
     "dev:api": "vercel dev",
-    "brand": "node scripts/brand-assets.mjs"
+    "brand": "node scripts/brand-assets.mjs",
+    "favicon": "node scripts/favicon.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",

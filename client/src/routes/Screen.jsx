@@ -143,8 +143,16 @@ function ClosingPlate({ url, size }) {
 
 // 같은 집계를 다르게 배치하는 뷰일 뿐이다. 배경도 보더도 없다. 글래스 위에 텍스트만 얹는다.
 // 위계는 크기로만 만든다. 색은 ink 단색이고 최다 단어만 blue 다.
+// FLIP(First-Last-Invert-Play). 단어 크기(font-size)와 위치(flex-wrap 재배치)는 둘 다 레이아웃 속성이라
+// 직접 애니메이션하면 AGENTS 1절(layout/paint 유발 속성 애니메이션 금지)에 걸린다. BarChart 가
+// 막대 성장을 transform: scaleX 로 대체하는 것과 같은 근거다. 변화 직전 위치·크기를 재고(First),
+// DOM 이 이미 새 위치·크기로 바뀌 다음(Last) 그 차이를 transform 으로 역산(Invert)해 순간 이동이
+// 없었던 것처럼 보이게 한 다음, 다음 프레임에 transition 을 걸고 identity 로 되돌려(Play) 부드럽게 이어붙인다.
+// 새로 등장하는 단어는 대상이 아니다. React 가 이미 새 DOM 노드를 만들므로 CSS 마운트 애니메이션
+// (`cloud-in`)이 그대로 맞는다. 둘이 겹치지 않게 FLIP 대상은 이미 있던 단어만으로 거른다.
 function WordCloud({ items, highlight }) {
   const boxRef = useRef(null);
+  const prevRectsRef = useRef(new Map());
   const top = Math.max(1, ...items.map((it) => it.count ?? 0));
   const words = items.slice(0, layout.cloudWords);
   useFitScale(boxRef, words.map((w) => `${w.word}:${w.count ?? 0}`).join('|'));
@@ -168,6 +176,35 @@ function WordCloud({ items, highlight }) {
   const min = layout.cloudMin;
   const max = `calc(${layout.cloudMax} * ${fit})`;
 
+  // 이 훈은 레이아웃이 확정된 다음(위 useFitScale 과 같은 커밋 이후) 돑아야 하므로 useFitScale 보다
+  // 뒤에 둔다. React 는 동일 컴포넌트 안의 useLayoutEffect 를 선언 순서대로(아래에서 위로) 실행하므로,
+  // 이 훈이 useFitScale 보다 나중에 실행되게 둘 둘 다 문서 순서대로 놓었다(위에서 useFitScale 먼저 호출함).
+  useLayoutEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    const prev = prevRectsRef.current;
+    const next = new Map();
+    el.querySelectorAll('.cloud-word').forEach((node) => {
+      const word = node.dataset.word;
+      const rect = node.getBoundingClientRect();
+      next.set(word, rect);
+      const before = prev.get(word);
+      if (!before || !rect.width || !before.width) return; // 새 단어는 cloud-in 이 담당한다.
+      const dx = before.left + before.width / 2 - (rect.left + rect.width / 2);
+      const dy = before.top + before.height / 2 - (rect.top + rect.height / 2);
+      const scale = before.width / rect.width;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5 && Math.abs(scale - 1) < 0.01) return; // 안 바뀌었으면 건드리지 않는다.
+      node.style.transition = 'none';
+      node.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+      node.getBoundingClientRect(); // 강제 리플로우. 여기서 끝나면 위 transform 이 적용된 채로 프레임이 확정된다.
+      requestAnimationFrame(() => {
+        node.style.transition = `transform ${motion.durBase} ${motion.easeOut}`;
+        node.style.transform = '';
+      });
+    });
+    prevRectsRef.current = next;
+  });
+
   return (
     <div
       ref={boxRef}
@@ -185,6 +222,7 @@ function WordCloud({ items, highlight }) {
         return (
           <span
             key={w.word}
+            data-word={w.word}
             className={`cloud-word cloud-chip ${
               highlight !== null && count === highlight ? 'cloud-chip-lead text-white' : 'text-ink'
             }`}
