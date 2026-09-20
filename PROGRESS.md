@@ -892,3 +892,39 @@ Fullscreen API 를 막아둔 것이다. **사람이 실제 브라우저에서 F 
 질문 2·3 은 아직 `[더미]` 다.
 
 산출물: `client/test-artifacts/simulation/G-q1-vote.png`, `G-q1-screen.png`
+
+## 결과 막대 갱신 보간 수정 (2026-09-20)
+
+**증상**: 막대가 처음 등장할 때는 자라지만, 표가 추가될 때는 보간 없이 툭 튀었다.
+
+**실측(수정 전)**: A 막대에 1표를 넣고 프레임 단위로 `transform` 을 샘플링했더니 `scaleX` 가
+**0 → 1 로 단 한 프레임에 점프**했다(변화 소요 0ms, 변화 지점 1개).
+
+**원인 두 가지** (`index.css` `.bar-fill`)
+
+1. `transition` 에 `transform` 이 없었다. `filter` 만 있었다.
+2. 등장 애니메이션이 `animation: bar-grow ... both` 였다. `both` 는 `forwards` 를 포함하므로 애니메이션이
+   끝난 뒤에도 계속 값을 잡고 있는다. 키프레임 `to` 가 `scaleX(var(--bar))` 라서 `--bar` 가 바뀌면
+   애니메이션 채움값이 즉시 새 값으로 재계산된다. transition 이 끼어들 자리가 없었다.
+
+**수정**: fill-mode 를 `backwards` 로 바꾸고 `transition` 에 `transform` 을 추가했다.
+`backwards` 는 지연 구간에서만 `from` 상태를 잡고, 애니메이션이 끝나면 기본 `transform` 으로 돌아온다.
+그 뒤 값 변화는 transition 이 맡는다. 등장은 자라고, 갱신은 미끄러진다.
+
+```
+before: animation: bar-grow slow out both;
+        transition: filter fast standard;
+after:  animation: bar-grow slow out backwards;
+        transition: transform slow out, filter fast standard;
+```
+
+**실측(수정 후)**: 같은 조건에서 `scaleX` 가 **83 프레임에 걸쳐 684ms** 동안 0.037 → 0.500 으로 보간된다.
+등장 애니메이션도 그대로다. 첫 프레임 전부 `scaleX 0`, A 막대 고유값 57개로 0 에서 자라고,
+막대별 시작 프레임이 3 / 28 로 갈려 stagger 도 유지된다.
+
+새 토큰을 만들지 않았다. 보간 길이는 기존 `durSlow`(700ms), 커브는 기존 `easeOut` 을 그대로 쓴다.
+reduced-motion 은 전역 규칙이 transition-duration 까지 0.01ms 로 눌러 그대로 적용된다.
+
+**워드클라우드는 손대지 않았다.** 단어 크기는 `font-size` 라 레이아웃 속성이고, AGENTS.md 1절이
+레이아웃 유발 속성 애니메이션을 금지한다. DESIGN.md 도 "즉시 반영" 으로 명시돼 있다. 새로 등장하는 단어의
+`cloud-in`(opacity + scale) 은 그대로다.

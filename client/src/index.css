@@ -214,12 +214,18 @@
     transform: scaleX(var(--bar, 0));
   }
 }
+/* fill-mode 는 backwards 다. both(=forwards 포함)로 두면 애니메이션이 끝난 뒤에도 계속 보간을 가로채서,
+   표가 추가될 때 --bar 값이 한 프레임 만에 튀다(실측: scaleX 0 → 1 을 0ms 에 점프).
+   backwards 는 지연 구간에서만 from 상태를 잡고, 끝난 뒤에는 기본 transform 으로 돌아와
+   아래 transition 이 이후 변화를 맡는다. 등장은 자라고, 갱신은 미끄러진다. */
 .bar-fill {
   transform-origin: left center;
   transform: scaleX(var(--bar, 0));
-  animation: bar-grow theme('transitionDuration.slow') theme('transitionTimingFunction.out') both;
+  animation: bar-grow theme('transitionDuration.slow') theme('transitionTimingFunction.out') backwards;
   animation-delay: var(--bar-delay, 0ms);
-  transition: filter theme('transitionDuration.fast') theme('transitionTimingFunction.standard');
+  transition:
+    transform theme('transitionDuration.slow') theme('transitionTimingFunction.out'),
+    filter theme('transitionDuration.fast') theme('transitionTimingFunction.standard');
 }
 /* 1등 확정 시 아주 미세한 강조. 오버슈트 없음. */
 .bar-lead {
