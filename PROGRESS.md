@@ -727,3 +727,58 @@ DevControlPanel 에는 활성 질문 리스트나 선택 토글 자체가 없다
 복구 계기가 없다. 결과 채널(D1)과 재연결(D2)에는 보정이 들어갔지만 **연결이 살아 있는 동안의 sessions
 이벤트 유실은 아직 보정 경로가 없다.** 행사 중 표지나 뷰 전환이 한 번 안 먹는 형태로 나타날 수 있다.
 재현율이 낮아 이번에는 고치지 않았다. 다음 라운드에서 다룰 후보다.
+
+
+## 루트를 대형화면으로 (2026-09-20)
+
+청중은 QR 로만 들어온다. 도메인을 직접 치는 사람은 시연·리허설 중인 운영자다. 그래서 루트의 청중용 폴백
+랜딩을 없애고 `/` 가 `/screen` 과 같은 화면을 그리게 했다.
+
+### A. 라우팅
+
+`App.jsx` 에서 `/` 의 element 를 `Screen` 으로 바꿨다. `<Navigate>` 리다이렉트를 쓰지 않았다.
+주소창이 `/` 그대로 유지돼야 하고, 리다이렉트로 재마운트가 일어나면 realtime 소켓이 끊었다 다시 붙기 때문이다.
+
+```
+before: <Route path="/" element={<Landing />} />
+after:  <Route path="/" element={<Screen />} />
+```
+
+`/screen` 라우트는 그대로 뒀다. 기존 북마크와 문서 링크가 계속 작동한다.
+
+### B. Landing 제거
+
+- `client/src/routes/Landing.jsx` 삭제(`Landing`, `LandingView` 둘 다).
+- `App.jsx` import·라우트 제거.
+- `Preview.jsx` 의 "랜딩 / 390" 섹션(진행 중·종료 프레임 2개)과 `LandingView` import 제거.
+- `ROUTES.md` 라우트 표: `/` 를 "대형화면(`/screen` 과 동일 컴포넌트)"로 수정.
+- `IA.md` 공용 항목: `/` 설명을 대형화면으로 교체하고 이유를 남겼다.
+- `COMPONENTS.md` 에는 Landing 관련 서술이 없어 건드릴 것이 없었다.
+
+코드에서 `Landing` 문자열 0건, dist 번들에서 `Landing`·"지금 참여하기"·"실시간 투표에 참여" 전부 0건이다.
+
+### C. NavFab / F 키 . 대상 없음
+
+작업 지시에 "NavFab·F 키 판정 목록에 `/` 추가"가 있었지만 **이 프로젝트에 NavFab 도 F 키 전체화면도 존재하지 않는다.**
+`client/src` 전체에서 `NavFab`, `Fab`, `fullscreen`, `requestFullscreen`, `keydown` 모두 0건이다
+(검색되는 건 09-20 전수 재검증에서 내가 "미구현"이라고 적어둔 PROGRESS.md 문장뿐이다).
+
+지시가 우려한 "메인 도메인에서 FAB 가 안 뜨는 모순"은 생기지 않는다. 애초에 어느 경로에도 FAB 가 없기 때문이다.
+갱신할 판정 목록 자체가 없어 C 는 수행 대상이 없다. 화면 간 이동 UI 가 필요하면 새로 만드는 작업이라
+별도 지시가 필요하다.
+
+### 검증
+
+| # | 항목 | 결과 |
+|---|---|---|
+| 1 | `/` 가 `/screen` 과 동일 렌더 | standby·cover·결과 **세 상태 모두 DOM 동일**(QR 유무·막대 수·단어 수·배경 src·루트 클래스 일치) |
+| 1 | 리다이렉트 없음 | `location.pathname` 이 `/` 로 유지, `navigation` 엔트리 1 → 1 |
+| 1 | 소켓 재마운트 없음 | `/` 에서 세션 전환이 **617ms** 만에 반영, 재마운트 0 |
+| 2 | `/screen` 회귀 | 기존과 동일 동작 |
+| 3 | `/` 에서 NavFab·F 키 | **검증 불가**. 기능이 존재하지 않는다(C 참고) |
+| 4 | `/vote` 회귀 | FAB 없음(원래 어디에도 없음), 화면 정상 |
+| 5 | Landing 잔재 | 코드 0건, dist 0건 |
+| 6 | Preview 갤러리 | 섹션 3개(청중·대형화면·어드민), 프레임 19개, 랜딩 흔적 0 |
+| 7 | build·격리·가로 스크롤 | 빌드 통과, dist 격리 유지, `/` 가로 스크롤 0 |
+
+산출물: `client/test-artifacts/simulation/E-root-cover.png`, `E-root-results.png`

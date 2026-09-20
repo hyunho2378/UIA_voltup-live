@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { adminCheck } from './lib/admin.js';
 import { SessionProvider } from './lib/session-context.jsx';
-import Landing from './routes/Landing.jsx';
 import Vote from './routes/Vote.jsx';
 import Screen from './routes/Screen.jsx';
 import AdminLogin from './routes/AdminLogin.jsx';
@@ -42,7 +41,9 @@ export default function App() {
     <SessionProvider>
       {import.meta.env.DEV && <DevControlPanel />}
       <Routes>
-        <Route path="/" element={<Landing />} />
+        {/* 청중은 QR 로만 들어온다. 루트로 직접 오는 건 운영자뿐이라 "/" 를 대형화면으로 둔다.
+            리다이렉트를 쓰지 않는다. 주소창이 바뀜지 않아야 하고, 재마운트로 realtime 소켓이 다시 붙는 과정을 만들지 않기 위해서다. */}
+        <Route path="/" element={<Screen />} />
         <Route path="/vote" element={<Vote />} />
         <Route path="/screen" element={<Screen />} />
         <Route path="/admin/login" element={<AdminLogin />} />

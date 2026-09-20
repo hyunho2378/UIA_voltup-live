@@ -5,7 +5,6 @@ import { GlassModeProvider } from '../components/glass/GlassRoot.jsx';
 import { VoteView } from './Vote.jsx';
 import { ScreenView } from './Screen.jsx';
 import { AdminView } from './Admin.jsx';
-import { LandingView } from './Landing.jsx';
 import AdminLogin from './AdminLogin.jsx';
 import { sampleQuestions, buildMocks } from '../mock/sample-questions.js';
 import { colors, spacing, radius, typography } from '../tokens.js';
@@ -152,15 +151,6 @@ export default function Preview() {
           </Frame>
         </div>
 
-        <h2 style={S.h2}>랜딩 / 390</h2>
-        <div style={S.row}>
-          <Frame label="진행 중" w={390} h={760}>
-            <LandingView />
-          </Frame>
-          <Frame label="종료" w={390} h={760}>
-            <LandingView ended />
-          </Frame>
-        </div>
       </div>
     </GlassModeProvider>
   );
