@@ -111,7 +111,9 @@ function WordCloud({ items, highlight }) {
         return (
           <span
             key={w.word}
-            className={`cloud-word ${highlight !== null && count === highlight ? 'text-blue' : 'text-ink'}`}
+            className={`cloud-word cloud-chip ${
+              highlight !== null && count === highlight ? 'cloud-chip-lead text-white' : 'text-ink'
+            }`}
             style={{
               // clamp(최소, 최대 * sqrt(비율), 최대). 꼬리 단어는 최소값에 붙고 1등만 최대값에 닿는다.
               fontSize: `clamp(${min}, calc(${layout.cloudMax} * ${fit} * ${r}), ${max})`,
