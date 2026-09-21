@@ -117,6 +117,9 @@ export async function submitVote({ questionId, optionId = null, textValue = null
     .insert({ question_id: questionId, option_id: optionId, text_value: textValue, scale_value: scaleValue, voter_key });
   if (error) {
     if (error.code === '23505') return { ok: false, reason: 'duplicate' };
+    // 22023 = 0011 마이그레이션의 투표 형태 검증 트리거. 폰에 오래된 페이지가 떠 있어
+    // 질문 타입과 다른 형태로 보냈다는 뜻이다. 표를 조용히 버리지 않고 새로고침을 안내한다.
+    if (error.code === '22023') return { ok: false, reason: 'stale' };
     return { ok: false, reason: 'error', error };
   }
   return { ok: true };

@@ -341,6 +341,13 @@ export default function Vote() {
       setNotice('이미 투표했어요');
       return;
     }
+    // 폰에 오래된 화면이 떠 있어 지금 질문과 다른 형태로 보낸 경우. 예전에는 서버가 받긴 받되
+    // 집계에서 빠져 "참여 수는 늘어나는데 막대는 0" 이 됐다(0011 마이그레이션 주석 참고).
+    // 이제는 거부되므로 청중에게 새로고침을 안내한다.
+    if (res.reason === 'stale') {
+      setNotice('화면을 새로고침한 뒤 다시 한 번 눌러주세요');
+      return;
+    }
     // 42501(마감). 폰에 따로 알리지 않는다. Realtime 이 voting_open=false 를 밀면 대기 화면으로 돌아간다.
     setNotice('');
   }
