@@ -401,3 +401,38 @@
   border: 1px solid rgba(255, 255, 255, 0.55);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65), 0 10px 30px rgba(0, 0, 0, 0.12);
 }
+
+/* ── 청중 바텀시트 ────────────────────────────────────────
+   PATTERNS.md: "청중 화면 모달은 바텀시트". 화면이 오래됐을 때 새로고침을 안내하는 용도다.
+   딤 배경은 overlay, 시트는 modal 레이어(토큰 경유). 등장은 transform + opacity 만 쓴다. */
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes scrim-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: theme('zIndex.overlay');
+  background: rgba(10, 10, 10, 0.32);
+  animation: scrim-in theme('transitionDuration.enter') theme('transitionTimingFunction.out') both;
+}
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: theme('zIndex.modal');
+  margin: 0 auto;
+  animation: sheet-in theme('transitionDuration.base') theme('transitionTimingFunction.out') both;
+}
+.sheet-card {
+  background: rgba(255, 255, 255, 0.82);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  backdrop-filter: blur(24px) saturate(1.6);
+  border-top: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 -12px 40px rgba(0, 0, 0, 0.16);
+}

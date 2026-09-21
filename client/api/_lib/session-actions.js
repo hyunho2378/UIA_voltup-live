@@ -17,7 +17,9 @@ export function patchFor(action, questionId) {
     case 'view_cloud':   return { results_view: 'cloud' };
     case 'standby':      return { status: 'standby', voting_open: false, results_visible: false };
     case 'cover':        return { status: 'cover', voting_open: false, results_visible: false };
-    // 마지막 순서의 홍보 화면. 질문과 무관하므로 투표·결과를 닫는다.
+    // 마지막 두 화면. 둘 다 질문과 무관하므로 투표·결과를 닫는다.
+    // wgj: 2026 세계경주포럼 홍보(로고 + 참가등록 QR). closing: 청중 사진 촬영용 배경.
+    case 'wgj':          return { status: 'wgj', voting_open: false, results_visible: false };
     case 'closing':      return { status: 'closing', voting_open: false, results_visible: false };
     case 'end':          return { status: 'ended', voting_open: false };
     default: return null;

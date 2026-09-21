@@ -144,6 +144,29 @@ function Slider({ value, onChange, minLabel, maxLabel }) {
   );
 }
 
+// 화면이 오래됐을 때 띄우는 바텀시트. PATTERNS.md 규약대로 청중 모달은 중앙 다이얼로그가 아니라
+// 바텀시트다(엄지로 닿는 위치). 새로고침 버튼을 눌러 바로 복구할 수 있게 한다.
+function StaleSheet({ onReload }) {
+  return (
+    <>
+      <div className="sheet-scrim" aria-hidden="true" />
+      <div className="sheet w-full max-w-vote px-lg pb-2xl" role="dialog" aria-modal="true" aria-labelledby="stale-title">
+        <div className="sheet-card rounded-xl p-panel">
+          <p id="stale-title" className="balance text-question text-ink">
+            <Ko>화면이 오래됐어요</Ko>
+          </p>
+          <p className="mt-sub text-option text-ink">
+            <Ko>새로고침하면 지금 질문으로 바로 넘어가요. 투표는 아직 저장되지 않았어요.</Ko>
+          </p>
+          <GlassButton prominent onClick={onReload} className="mt-panel w-full">
+            새로고침
+          </GlassButton>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function Radio({ on }) {
   return (
     <span
@@ -173,6 +196,7 @@ export function VoteView({
   text = '',
   scale = null,
   notice = '',
+  stale = false,
   ended = false,
   onChoice = () => {},
   onText = () => {},
@@ -273,6 +297,8 @@ export function VoteView({
       >
         투표하기
       </GlassButton>
+
+      {stale ? <StaleSheet onReload={() => window.location.reload()} /> : null}
     </GlassRoot>
   );
 }
@@ -286,6 +312,7 @@ export default function Vote() {
   const [scale, setScale] = useState(3);
   const [voted, setVoted] = useState(false);
   const [notice, setNotice] = useState('');
+  const [stale, setStale] = useState(false);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
@@ -302,6 +329,7 @@ export default function Vote() {
     setText('');
     setScale(3);
     setVoted(false);
+    setStale(false);
     setNotice('');
 
     // 이전 질문의 fetch 가 뒤늦게 도착해 덮어쓰는 걸 막는다.
@@ -345,7 +373,7 @@ export default function Vote() {
     // 집계에서 빠져 "참여 수는 늘어나는데 막대는 0" 이 됐다(0011 마이그레이션 주석 참고).
     // 이제는 거부되므로 청중에게 새로고침을 안내한다.
     if (res.reason === 'stale') {
-      setNotice('화면을 새로고침한 뒤 다시 한 번 눌러주세요');
+      setStale(true);
       return;
     }
     // 42501(마감). 폰에 따로 알리지 않는다. Realtime 이 voting_open=false 를 밀면 대기 화면으로 돌아간다.
@@ -364,6 +392,7 @@ export default function Vote() {
       text={text}
       scale={scale}
       notice={notice}
+      stale={stale}
       ended={ended}
       onChoice={setChoice}
       onText={setText}

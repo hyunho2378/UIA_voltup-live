@@ -123,10 +123,10 @@ function CoverPlate() {
   );
 }
 
-// 클로징(홍보). 교수님 마무리 뒤에 띄우는 마지막 화면이다.
+// 경주포럼 홍보 화면(예전 'closing'). 2026 세계경주포럼 로고 + 참가등록 QR.
 // 로고와 QR 은 둘 다 오브젝트라 가운데 배치를 허용한다(DESIGN 정렬 예외, QR 플레이트와 같은 근거).
 // QR 은 스캔 가독성이 재질보다 우선이라 대기 화면과 동일하게 흰 플레이트 위에 올린다.
-function ClosingPlate({ url, size }) {
+function WgjPlate({ url, size }) {
   return (
     <div className="plate-in flex flex-1 flex-col items-center justify-center gap-4xl">
       {/* min-h-0 이 없으면 flex 아이템이 줄지 않아 세로가 짧은 화면에서 패널을 넘는다. */}
@@ -140,6 +140,59 @@ function ClosingPlate({ url, size }) {
       />
       <div className="rounded-lg bg-white p-2xl">
         <QRCodeCanvas value={url} size={size} level="M" includeMargin={false} />
+      </div>
+    </div>
+  );
+}
+
+// 클로징(사진 촬영용). 청중이 이 화면을 배경으로 사진을 찍는다.
+// 이 앱에서 유일하게 ambient 색면·글래스를 쓰지 않는 화면이다. 사진에 담길 배경이라
+// 그라데이션이 있으면 인물과 섞이고 인쇄·재촬영 때도 지저분해진다. paper 단색으로 깔고,
+// 브랜드 자산도 brandRamp 재도색본이 아니라 행사 원본 유채색을 그대로 쓴다(사용자 요청).
+// 위에서 아래로: 행사명 → 타이틀 → (우측 그래픽) → 하단 로고 2개.
+function ClosingPlate() {
+  return (
+    <div className="flex min-h-dvh flex-col bg-paper p-lg lg:p-4xl">
+      <div className="plate-in flex flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col items-start gap-2xl lg:flex-row lg:items-center lg:gap-4xl">
+          <div className="flex w-full min-w-0 flex-col justify-center lg:flex-1">
+            {/* 위에서 아래로 행사명 → 포럼 타이틀 → 세션 타이틀 순. 포럼 타이틀(2026 UIA x 한양대학교
+                NEXT IMPACT FORUM)은 커버와 같은 자산을 그대로 쓴다. 없앤 건 MODULE 05 / INTERACTIVE
+                SESSION 두 줄뿐이다. */}
+            <p className="text-closingEyebrow text-ink">제3회 대한민국 사회적 가치 페스타</p>
+            <img
+              src="/images/brand/title.svg"
+              alt="2026 UIA x 한양대학교 NEXT IMPACT FORUM"
+              className="mt-xl w-full object-contain object-left"
+              style={{ maxWidth: layout.closingTitleMax }}
+            />
+            <h1 className="balance mt-xl text-closingTitle text-ink">
+              <Ko>대학의 미래, 미래의 대학</Ko>
+            </h1>
+          </div>
+          {/* 장식이라 alt 를 비운다. 세로로 긴 그림이라 lg 미만에서는 아래로 쌓고 작게 둔다. */}
+          <img
+            src="/images/brand/graphic-color.webp"
+            alt=""
+            aria-hidden="true"
+            className="min-h-0 max-w-closingGraphicSm max-h-closingGraphicSm shrink-0 self-center object-contain lg:max-w-closingGraphic lg:max-h-closingGraphic"
+          />
+        </div>
+        {/* 하단 로고 2개. 주최·주관 표기라 한 줄에 나란히 둔다. */}
+        <div className="mt-2xl flex shrink-0 items-center gap-4xl">
+          <img
+            src="/images/brand/logo-color.svg"
+            alt="UIA"
+            className="object-contain"
+            style={{ maxWidth: layout.closingUiaLogoMax, width: '100%' }}
+          />
+          <img
+            src="/images/brand/hyu-logotype.svg"
+            alt="한양대학교"
+            className="object-contain"
+            style={{ maxWidth: layout.closingHyuLogoMax, width: '100%' }}
+          />
+        </div>
       </div>
     </div>
   );
@@ -414,6 +467,7 @@ export function ScreenView({
   standby = false,
   cover = false,
   closing = false,
+  wgj = false,
   resultsVisible = true,
   voteUrl = '',
   closingUrl = CLOSING_URL,
@@ -441,6 +495,10 @@ export function ScreenView({
   const scaleOptions = isScale ? [...(question.options ?? [])].sort((a, b) => a.order_no - b.order_no) : [];
   const cloud = isText;
 
+  // 클로징만 GlassRoot 밖에서 그린다. ambient 색면·글래스를 쓰지 않는 유일한 화면이라
+  // 같은 래퍼 안에 두면 뒤에 배경 이미지가 깔린다.
+  if (closing) return <ClosingPlate key="closing" />;
+
   return (
     <GlassRoot
       background="/images/bg/ambient-screen.webp"
@@ -457,8 +515,8 @@ export function ScreenView({
           <QrPlate key="standby" url={voteUrl} size={qrSize} />
         ) : cover ? (
           <CoverPlate key="cover" />
-        ) : closing ? (
-          <ClosingPlate key="closing" url={closingUrl} size={Math.round(qrSize * layout.closingQrRatio)} />
+        ) : wgj ? (
+          <WgjPlate key="wgj" url={closingUrl} size={Math.round(qrSize * layout.closingQrRatio)} />
         ) : (
           // min-h-0 이 없으면 flex 아이템이 내용 아래로 줄지 못해 패널이 화면 밖으로 자란다.
           // 선택지 카드가 스스로 줄어들려면 이 줄이 먼저 뚫려 있어야 한다(실측 22px 초과).
@@ -581,6 +639,7 @@ export default function Screen() {
       standby={session?.status === 'standby'}
       cover={session?.status === 'cover'}
       closing={session?.status === 'closing'}
+      wgj={session?.status === 'wgj'}
       resultsVisible={Boolean(session?.results_visible)}
       voteUrl={import.meta.env.VITE_VOTE_SHORT_URL || `${window.location.origin}/vote`}
       qrSize={qrSize}

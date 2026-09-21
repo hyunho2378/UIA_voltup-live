@@ -15,7 +15,7 @@ const CONN = {
 };
 
 // standby 는 "대형화면에 QR 이 떠 있는 상태"다. 진행자가 보는 말로 적는다.
-const STATUS = { cover: '표지', standby: 'QR 공개', live: '진행 중', closing: '클로징', ended: '종료' };
+const STATUS = { cover: '표지', standby: 'QR 공개', live: '진행 중', wgj: '경주포럼', closing: '클로징', ended: '종료' };
 
 /** 표시 전용. Supabase 도 /api 도 모른다. */
 export function AdminView({
@@ -96,10 +96,16 @@ export function AdminView({
         </GlassButton>
       </div>
 
-      {/* 마지막 순서. 교수님 마무리 뒤에 누른다. 질문과 무관하게 언제든 전환할 수 있다. */}
-      <GlassButton prominent={session?.status === 'closing'} disabled={busy} onClick={() => onAction('closing')}>
-        클로징 화면
-      </GlassButton>
+      {/* 마지막 두 화면. 교수님 마무리 뒤에 누른다. 질문과 무관하게 언제든 전환할 수 있다.
+          경주포럼 = 홍보(로고 + 참가등록 QR), 클로징 = 청중 사진 촬영용 배경. */}
+      <div className="grid grid-cols-2 gap-md">
+        <GlassButton prominent={session?.status === 'wgj'} disabled={busy} onClick={() => onAction('wgj')}>
+          경주포럼 화면
+        </GlassButton>
+        <GlassButton prominent={session?.status === 'closing'} disabled={busy} onClick={() => onAction('closing')}>
+          클로징 화면
+        </GlassButton>
+      </div>
 
       <Glass variant="regular" radius="xl" className="p-panel">
         <p className="flex items-center gap-sm text-body text-ink">

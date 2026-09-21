@@ -60,7 +60,23 @@ await sharp(Buffer.from(graphicSvg), { density: 400 })
   .webp({ quality: 92 })
   .toFile(`${OUT}/graphic.webp`);
 
+// ── 클로징(사진 촬영용) 화면 전용: 유채색 원본 그대로 ─────────────────────────
+// 다른 화면은 brandRamp 로 단일 톤을 맞추지만, 마지막 클로징은 청중이 사진을 찍는 배경이라
+// 행사 브랜드 원본 색을 그대로 쓴다(사용자 요청). 재도색 없이 복사만 한다.
+await writeFile(`${OUT}/logo-color.svg`, await readFile(`${SRC}/logo-color.svg`, 'utf8'));
+await writeFile(`${OUT}/hyu-logotype.svg`, await readFile(`${SRC}/hyu-logotype.svg`, 'utf8'));
+
+// 그래픽은 원본도 7,961개 요소라 SVG 로 넣지 않고 같은 기준으로 WebP 로 굽는다.
+// graphic.svg 는 원래부터 유채색 원본이다(재도색은 메모리에서만 한다). 같은 파일을 그대로 굽는다.
+await sharp(await readFile(`${SRC}/graphic.svg`), { density: 400 })
+  .resize({ width: 1100 })
+  .webp({ quality: 92 })
+  .toFile(`${OUT}/graphic-color.webp`);
+
 const size = async (f) => Math.round((await readFile(`${OUT}/${f}`)).length / 1024);
 console.log('logo.svg', await size('logo.svg'), 'KB');
 console.log('title.svg', await size('title.svg'), 'KB');
 console.log('graphic.webp', await size('graphic.webp'), 'KB');
+console.log('logo-color.svg', await size('logo-color.svg'), 'KB');
+console.log('hyu-logotype.svg', await size('hyu-logotype.svg'), 'KB');
+console.log('graphic-color.webp', await size('graphic-color.webp'), 'KB');

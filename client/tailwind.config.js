@@ -41,10 +41,14 @@ export default {
         screen: layout.screenBase,
         coverGraphic: layout.coverGraphicMax,
         coverGraphicSm: layout.coverGraphicMaxSm,
+        closingGraphic: layout.closingGraphicMax,
+        closingGraphicSm: layout.closingGraphicMaxSm,
       },
       maxHeight: {
         coverGraphic: layout.coverGraphicMaxH,
         coverGraphicSm: layout.coverGraphicMaxHSm,
+        closingGraphic: layout.closingGraphicMaxH,
+        closingGraphicSm: layout.closingGraphicMaxHSm,
       },
       minHeight: {
         touch: layout.touchMin,

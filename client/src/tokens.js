@@ -11,6 +11,9 @@ export const colors = {
   blue: '#1F6FFF',
   green: '#16A34A',
   white: '#FFFFFF',
+  // 클로징(사진 촬영용) 화면 전용 배경. ambient 색면·글래스를 쓰지 않는 유일한 화면이라
+  // 흰색에 가깝되 순백은 아닌 종이 톤을 따로 둔다(사용자 지정값).
+  paper: '#FEFEFE',
   // 비1등 막대. 트랙과 명도가 확실히 갈려야 길이를 읽을 수 있다.
   inkSoft: '#39404A',
 
@@ -66,6 +69,9 @@ export const typography = {
   // 1행(한글)은 살짝, 2행(영문 대문자)은 더 넓게. 두 줄이 같은 크기와 색이되 자간으로만 위계를 나눈다.
   screenEyebrow: { size: 'clamp(20px, 1.6vw, 30px)', weight: 600, leading: 1.4, tracking: '0.02em' },
   screenEyebrowWide: { size: 'clamp(20px, 1.6vw, 30px)', weight: 600, leading: 1.4, tracking: '0.05em' },
+  // 클로징(사진 촬영용) 화면. 20m 뒤에서도 읽히고 사진에 담겨야 해서 커버보다 크게 간다.
+  closingEyebrow: { size: 'clamp(18px, 1.9vw, 38px)', weight: 600, leading: 1.3, tracking: '0.02em' },
+  closingTitle: { size: 'clamp(32px, 5vw, 96px)', weight: 700, leading: 1.15, tracking: '-0.02em' },
   // 커버 모듈 태그 2행. "우리는 포럼 전체가 아니라 5모듈"이라는 걸 표시하려고 추가했다.
   // 영어(작고 넓은 트래킹)는 태그, 한글(굵고 좁은 트래킹)은 실제 세션명 강조다. 라벨과 헤드라인처럼 위계를 분리한다.
   screenModuleEn: { size: 'clamp(15px, 1.2vw, 22px)', weight: 600, leading: 1.4, tracking: '0.1em' },
@@ -157,6 +163,15 @@ export const layout = {
   // 컨테이너 자체 폭 비율로 다시 잡고, 세로는 텍스트 블록이 이미 많은 공간을 쓰므로 훨씬 낮게 둔다.
   coverGraphicMaxSm: 'min(58%, 280px)',
   coverGraphicMaxHSm: '26vh',
+
+  // 클로징(사진 촬영용) 화면. 로고 2개는 하단, 그래픽은 우측.
+  closingTitleMax: 'min(38vw, 560px)',
+  closingUiaLogoMax: 'clamp(90px, 11vw, 220px)',
+  closingHyuLogoMax: 'clamp(130px, 16vw, 320px)',
+  closingGraphicMax: 'min(26%, 360px)',
+  closingGraphicMaxH: '52vh',
+  closingGraphicMaxSm: 'min(52%, 240px)',
+  closingGraphicMaxHSm: '22vh',
 
   qrRatio: 0.38, // 화면 짧은 변 대비 QR 크기
   // 클로징(홍보) 화면. 로고가 주인공이고 QR 은 보조라 대기 화면 QR 보다 작게 둔다.
