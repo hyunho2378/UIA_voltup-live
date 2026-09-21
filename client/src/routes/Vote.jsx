@@ -15,6 +15,15 @@ export const MAX_TEXT = 12;
 // 그때 스키마에 컬럼을 추가한다.
 export const TEXT_CAPTION = '내가 생각하는 미래의 대학은 ______이다.';
 
+// 진동 피드백. Vibration API 는 안드로이드 Chrome 계열만 지원한다. 아이폰 사파리는 웹 표준
+// 자체를 구현하지 않아 이 함수가 조용히 아무것도 안 한다(사용자 확인 후 진행). 함수 자체 미지원
+// 브라우저도 있어 존재 체크를 먼저 한다.
+function vibrate(ms) {
+  if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+    navigator.vibrate(ms);
+  }
+}
+
 // 척도 슬라이더(Q1). 1~5 사이를 0.5 단위(9개 눈금)로만 음직인다.
 // 드래그 중 위치를 매프레임 바꾸는 건 CSS 애니메이션이 아니라 사용자 제스처에 직접 반응하는
 // direct manipulation 이라 AGENTS 1절(layout 유발 애니메이션 금지) 대상이 아니다. 임의 select/range 를 쓰지 않고
@@ -22,10 +31,12 @@ export const TEXT_CAPTION = '내가 생각하는 미래의 대학은 ______이�
 function Slider({ value, onChange, minLabel, maxLabel }) {
   const trackRef = useRef(null);
   const draggingRef = useRef(false);
+  const lastSnapRef = useRef(value);
   const fraction = value === null ? 0.5 : (value - 1) / 4;
-  // 0.5 단위 9개 멈침을 눈에 보이게 표시한다. 트랙만 있으면 어디서 멈추는지 안 보여서(사용자
-  // 피드백: "척도가 안 보여서 사람들이 모를 거 같다"), I I I 시그널로 9개 점을 직접 찍는다.
-  const ticks = Array.from({ length: 9 }, (_, i) => i / 8);
+  // 0.5 단위 9개 멈춰을 숫자로 보여준다. 바 자체에 새기는 버전은 사용자 피드백으로 버렸다
+  // ("저렇게 하라는 게 아니라 바 위에다가 해달라... 바 자체에 하는 건 좀 그렉고"). 대신 바 위체로
+  // 별도 줄에 1, 1.5, 2 ... 5 숫자 자체를 줄 세운다.
+  const ticks = Array.from({ length: 9 }, (_, i) => 1 + (i / 8) * 4);
 
   const valueFromClientX = (clientX) => {
     const rect = trackRef.current.getBoundingClientRect();
@@ -36,14 +47,24 @@ function Slider({ value, onChange, minLabel, maxLabel }) {
     return Math.round((1 + snapped * 4) * 10) / 10; // 부동소수점 오차 방지(3.0000004 방지)
   };
 
+  // 눈금이 바뀌는 순간만 짧게 진동해 손끝에 딱딱 끊기는 피드백을 준다. 같은 값을 계속 진동시키면
+  // 드래그 중 계속 진동해 불편하다.
+  const applyValue = (v) => {
+    if (v !== lastSnapRef.current) {
+      lastSnapRef.current = v;
+      vibrate(10);
+    }
+    onChange(v);
+  };
+
   const handlePointerDown = (e) => {
     trackRef.current.setPointerCapture(e.pointerId);
     draggingRef.current = true;
-    onChange(valueFromClientX(e.clientX));
+    applyValue(valueFromClientX(e.clientX));
   };
   const handlePointerMove = (e) => {
     if (!draggingRef.current) return;
-    onChange(valueFromClientX(e.clientX));
+    applyValue(valueFromClientX(e.clientX));
   };
   const handlePointerUp = (e) => {
     draggingRef.current = false;
@@ -51,14 +72,27 @@ function Slider({ value, onChange, minLabel, maxLabel }) {
   };
   const handleKeyDown = (e) => {
     const base = value ?? 3;
-    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') onChange(Math.min(5, base + 0.5));
-    else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') onChange(Math.max(1, base - 0.5));
-    else if (e.key === 'Home') onChange(1);
-    else if (e.key === 'End') onChange(5);
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') applyValue(Math.min(5, base + 0.5));
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') applyValue(Math.max(1, base - 0.5));
+    else if (e.key === 'Home') applyValue(1);
+    else if (e.key === 'End') applyValue(5);
   };
 
   return (
     <div className="mt-panel">
+      {/* 눈금 숫자 줄. 바 위에 따로 둔다(바 자체에 새기지 않는다). 트랙과 같은 폭에서 같은 비율로 점을 찍어야
+          하이라 바와 폭이 동일해야 한다(아래 track 컸테이너와 같은 너비 기준). */}
+      <div className="relative h-lg">
+        {ticks.map((v) => (
+          <span
+            key={v}
+            className="absolute text-caption text-ink tabular"
+            style={{ left: `${((v - 1) / 4) * 100}%`, transform: 'translateX(-50%)' }}
+          >
+            {v}
+          </span>
+        ))}
+      </div>
       <div
         ref={trackRef}
         role="slider"
@@ -72,7 +106,7 @@ function Slider({ value, onChange, minLabel, maxLabel }) {
         onPointerUp={handlePointerUp}
         onKeyDown={handleKeyDown}
         // 시각 트랙은 8px로 얺지만 터치 히트 영역은 touchMin(44px) 그대로 쓴다.
-        className="relative flex touch-none items-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-blue"
+        className="relative mt-sm flex touch-none items-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-blue"
         style={{ minHeight: layout.touchMin }}
       >
         <div
@@ -85,22 +119,6 @@ function Slider({ value, onChange, minLabel, maxLabel }) {
             style={{ transform: `scaleX(${fraction})`, transformOrigin: 'left' }}
           />
         </div>
-        {/* 멈춰 9개. 채운 구간(blue) 위에서는 흰 색, 빈 구간에서는 ink2(미선택 테두리 전용 색)로
-            둘 다 보이게 4color 로 깔마낛다. 트랙보다 약간 높게 튀어나와 몀리서도 보인다. */}
-        {ticks.map((pos) => (
-          <span
-            key={pos}
-            aria-hidden="true"
-            className={`pointer-events-none absolute rounded-full ${pos <= fraction ? 'bg-white/70' : 'bg-ink2'}`}
-            style={{
-              width: '2px',
-              height: `calc(${layout.sliderTrackHeight} * 1.75)`,
-              top: '50%',
-              left: `${pos * 100}%`,
-              transform: 'translate(-50%, -50%)',
-            }}
-          />
-        ))}
         <div
           aria-hidden="true"
           className="pointer-events-none absolute rounded-full border-2 border-blue bg-white"
@@ -224,7 +242,10 @@ export function VoteView({
                     <li key={o.id}>
                       <button
                         type="button"
-                        onClick={() => onChoice(o.id)}
+                        onClick={() => {
+                          vibrate(8);
+                          onChoice(o.id);
+                        }}
                         aria-pressed={on}
                         className={`press press-option flex min-h-option w-full items-center gap-radio rounded-md border px-optionX text-left text-option ${
                           on ? 'border-ink bg-ink text-white' : 'border-optionBorder bg-optionFill text-ink'
@@ -311,6 +332,7 @@ export default function Vote() {
       scaleValue: isScale ? scale : null,
     });
     if (res.ok) {
+      vibrate([12, 40, 12]); // 짧게-쉼음-짧게. 슬라이더 조작 중 단일 진동과 구별되는 제출 확정 패턴.
       setVoted(true);
       return;
     }

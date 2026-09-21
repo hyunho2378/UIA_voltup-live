@@ -299,25 +299,25 @@ function OptionList({ options }) {
 function ScaleHint({ options }) {
   const minLabel = options[0]?.label ?? '';
   const maxLabel = options[options.length - 1]?.label ?? '';
+  // 0.5 단위 9개 멈춰 숫자. /vote 와 같은 이유로 바 위에 따로 둔다(바 자체에 새기지 않는다).
+  const ticks = Array.from({ length: 9 }, (_, i) => 1 + (i / 8) * 4);
   return (
     <div className="flex flex-1 flex-col justify-center" style={{ marginTop: layout.screenChartTop }}>
-      <div className="relative w-full overflow-hidden rounded-bar bg-barTrack" style={{ height: layout.screenBarHeight }}>
-        {/* /vote 의 슬라이더와 같은 9개 멈춰. 개별 응답은 안 보여주므로 채움 구분 없이 전부 같은 색이다. */}
-        {Array.from({ length: 9 }, (_, i) => i / 8).map((pos) => (
+      <div className="relative" style={{ height: typography.screenVotes.size }}>
+        {ticks.map((v) => (
           <span
-            key={pos}
-            aria-hidden="true"
-            className="absolute rounded-full bg-ink2"
-            style={{
-              width: '3px',
-              height: '55%',
-              top: '50%',
-              left: `${pos * 100}%`,
-              transform: 'translate(-50%, -50%)',
-            }}
-          />
+            key={v}
+            className="absolute text-screenVotes text-ink tabular"
+            style={{ left: `${((v - 1) / 4) * 100}%`, transform: 'translateX(-50%)' }}
+          >
+            {v}
+          </span>
         ))}
       </div>
+      <div
+        className="mt-sm w-full overflow-hidden rounded-bar bg-barTrack"
+        style={{ height: layout.screenBarHeight }}
+      />
       <div className="mt-xl flex items-center justify-between gap-2xl">
         <p className="text-screenLabel text-ink">
           <Ko>{minLabel}</Ko>
