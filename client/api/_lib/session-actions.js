@@ -5,7 +5,9 @@ export const SESSION_ID = '00000000-0000-0000-0000-000000000001';
 
 export function patchFor(action, questionId) {
   switch (action) {
-    case 'set_question': return { active_question_id: questionId, voting_open: false, results_visible: false, status: 'live', results_view: 'bars' };
+    // 질문을 고르면 바로 투표가 열린다. 시간이 없는 행사라 "투표 열기"를 따로 누르는 단계를 없욈다(사용자 요청).
+    // 필요하면 아래 'close_voting' 으로 마감하고, 다시 열고 싶으면 'open_voting' 을 따로 불러 초기화한다.
+    case 'set_question': return { active_question_id: questionId, voting_open: true, results_visible: false, status: 'live', results_view: 'bars' };
     case 'open_voting':  return { voting_open: true };
     case 'close_voting': return { voting_open: false };
     case 'show_results': return { results_visible: true };

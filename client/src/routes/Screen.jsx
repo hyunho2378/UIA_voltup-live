@@ -301,10 +301,23 @@ function ScaleHint({ options }) {
   const maxLabel = options[options.length - 1]?.label ?? '';
   return (
     <div className="flex flex-1 flex-col justify-center" style={{ marginTop: layout.screenChartTop }}>
-      <div
-        className="w-full overflow-hidden rounded-bar bg-barTrack"
-        style={{ height: layout.screenBarHeight }}
-      />
+      <div className="relative w-full overflow-hidden rounded-bar bg-barTrack" style={{ height: layout.screenBarHeight }}>
+        {/* /vote 의 슬라이더와 같은 9개 멈춰. 개별 응답은 안 보여주므로 채움 구분 없이 전부 같은 색이다. */}
+        {Array.from({ length: 9 }, (_, i) => i / 8).map((pos) => (
+          <span
+            key={pos}
+            aria-hidden="true"
+            className="absolute rounded-full bg-ink2"
+            style={{
+              width: '3px',
+              height: '55%',
+              top: '50%',
+              left: `${pos * 100}%`,
+              transform: 'translate(-50%, -50%)',
+            }}
+          />
+        ))}
+      </div>
       <div className="mt-xl flex items-center justify-between gap-2xl">
         <p className="text-screenLabel text-ink">
           <Ko>{minLabel}</Ko>

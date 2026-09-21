@@ -22,7 +22,10 @@ export const TEXT_CAPTION = '내가 생각하는 미래의 대학은 ______이�
 function Slider({ value, onChange, minLabel, maxLabel }) {
   const trackRef = useRef(null);
   const draggingRef = useRef(false);
-  const fraction = value === null ? 0 : (value - 1) / 4;
+  const fraction = value === null ? 0.5 : (value - 1) / 4;
+  // 0.5 단위 9개 멈침을 눈에 보이게 표시한다. 트랙만 있으면 어디서 멈추는지 안 보여서(사용자
+  // 피드백: "척도가 안 보여서 사람들이 모를 거 같다"), I I I 시그널로 9개 점을 직접 찍는다.
+  const ticks = Array.from({ length: 9 }, (_, i) => i / 8);
 
   const valueFromClientX = (clientX) => {
     const rect = trackRef.current.getBoundingClientRect();
@@ -62,8 +65,8 @@ function Slider({ value, onChange, minLabel, maxLabel }) {
         tabIndex={0}
         aria-valuemin={1}
         aria-valuemax={5}
-        aria-valuenow={value ?? undefined}
-        aria-valuetext={value !== null ? `${value}점` : '선택 안 함'}
+        aria-valuenow={value ?? 3}
+        aria-valuetext={`${value ?? 3}점`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -82,19 +85,33 @@ function Slider({ value, onChange, minLabel, maxLabel }) {
             style={{ transform: `scaleX(${fraction})`, transformOrigin: 'left' }}
           />
         </div>
-        {value !== null ? (
-          <div
+        {/* 멈춰 9개. 채운 구간(blue) 위에서는 흰 색, 빈 구간에서는 ink2(미선택 테두리 전용 색)로
+            둘 다 보이게 4color 로 깔마낛다. 트랙보다 약간 높게 튀어나와 몀리서도 보인다. */}
+        {ticks.map((pos) => (
+          <span
+            key={pos}
             aria-hidden="true"
-            className="pointer-events-none absolute rounded-full border-2 border-blue bg-white"
+            className={`pointer-events-none absolute rounded-full ${pos <= fraction ? 'bg-white/70' : 'bg-ink2'}`}
             style={{
-              width: layout.sliderThumbSize,
-              height: layout.sliderThumbSize,
+              width: '2px',
+              height: `calc(${layout.sliderTrackHeight} * 1.75)`,
               top: '50%',
-              left: `${fraction * 100}%`,
+              left: `${pos * 100}%`,
               transform: 'translate(-50%, -50%)',
             }}
           />
-        ) : null}
+        ))}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute rounded-full border-2 border-blue bg-white"
+          style={{
+            width: layout.sliderThumbSize,
+            height: layout.sliderThumbSize,
+            top: '50%',
+            left: `${fraction * 100}%`,
+            transform: 'translate(-50%, -50%)',
+          }}
+        />
       </div>
       <div className="mt-sm flex items-start justify-between gap-md">
         <p className="text-caption text-ink">
@@ -104,11 +121,7 @@ function Slider({ value, onChange, minLabel, maxLabel }) {
           <Ko>{maxLabel}</Ko>
         </p>
       </div>
-      {value !== null ? (
-        <p className="mt-md text-center text-question text-ink tabular">{value}</p>
-      ) : (
-        <p className="mt-md text-center text-caption text-ink">드래그하거나 탭해서 선택하세요</p>
-      )}
+      <p className="mt-md text-center text-question text-ink tabular">{value ?? 3}</p>
     </div>
   );
 }
@@ -249,7 +262,7 @@ export default function Vote() {
   const [total, setTotal] = useState(0);
   const [choice, setChoice] = useState(null);
   const [text, setText] = useState('');
-  const [scale, setScale] = useState(null);
+  const [scale, setScale] = useState(3);
   const [voted, setVoted] = useState(false);
   const [notice, setNotice] = useState('');
 
@@ -266,7 +279,7 @@ export default function Vote() {
     setQuestion(null);
     setChoice(null);
     setText('');
-    setScale(null);
+    setScale(3);
     setVoted(false);
     setNotice('');
 
