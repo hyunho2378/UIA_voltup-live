@@ -79,7 +79,7 @@ function Slider({ value, onChange, minLabel, maxLabel }) {
   };
 
   return (
-    <div className="mt-panel">
+    <div className="mt-2xl">
       {/* 눈금 숫자 줄. 바 위에 따로 둔다(바 자체에 새기지 않는다). 트랙과 같은 폭에서 같은 비율로 점을 찍어야
           하이라 바와 폭이 동일해야 한다(아래 track 컸테이너와 같은 너비 기준). */}
       <div className="relative h-lg">
@@ -213,7 +213,7 @@ export function VoteView({
             ) : null}
 
             {state === 'waiting' ? (
-              ended ? <p className="mt-panel text-body text-ink">오늘 세션이 종료되었어요</p> : null
+              ended ? <p className="mt-2xl text-body text-ink">오늘 세션이 종료되었어요</p> : null
             ) : isScale ? (
               <Slider
                 value={scale}
@@ -222,7 +222,7 @@ export function VoteView({
                 maxLabel={options[options.length - 1]?.label ?? ''}
               />
             ) : isText ? (
-              <div className="mt-panel">
+              <div className="mt-2xl">
                 <input
                   value={text}
                   onChange={(e) => onText(e.target.value.slice(0, MAX_TEXT))}
@@ -235,7 +235,7 @@ export function VoteView({
                 </p>
               </div>
             ) : (
-              <ul className="mt-panel flex flex-col gap-md">
+              <ul className="mt-2xl flex flex-col gap-md">
                 {options.map((o) => {
                   const on = choice === o.id;
                   return (

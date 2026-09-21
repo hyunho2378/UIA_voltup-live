@@ -147,7 +147,7 @@ QR 플레이트와 같은 근거로 오브젝트 취급이라 가운데/우측 �
 
 | 구성 | 값 |
 |---|---|
-| 로고 | `/images/wgj-2026.png`. 폭 상한 `layout.closingLogoMax`(`min(72%, 1180px)`) |
+| 로고 | `/images/wgj-2026-ink.png`(원본은 순백이라 밝은 배경에서 안 보인다. 알파 유지 + RGB 만 ink 로 치환한 것). 폭 상한 `layout.closingLogoMax`(`min(72%, 1180px)`) |
 | QR | 대기 화면 QR 의 `layout.closingQrRatio`(0.62) 크기. 로고 아래 중앙 |
 | QR 대상 | `https://wgjforum.kr/kor/sub03/registration.html` (참가등록) |
 | 정렬 | 가운데. 로고와 QR 둘 다 오브젝트라 QR 플레이트와 같은 근거로 허용되는 예외다 |

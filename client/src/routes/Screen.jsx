@@ -131,7 +131,9 @@ function ClosingPlate({ url, size }) {
     <div className="plate-in flex flex-1 flex-col items-center justify-center gap-4xl">
       {/* min-h-0 이 없으면 flex 아이템이 줄지 않아 세로가 짧은 화면에서 패널을 넘는다. */}
       <img
-        src="/images/wgj-2026.png"
+        // 원본(wgj-2026.png)은 글자가 순백이라 밝은 ambient 배경 위에서 안 보였다(사용자 피드백).
+        // 알파는 그대로 두고 RGB 만 ink 로 바꾼 산출물을 쓴다. 원본은 보관용으로 남겨 둔다.
+        src="/images/wgj-2026-ink.png"
         alt="2026 세계경주포럼"
         className="min-h-0 w-full object-contain"
         style={{ maxWidth: layout.closingLogoMax, maxHeight: layout.closingLogoMaxH }}
