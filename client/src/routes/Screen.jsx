@@ -357,6 +357,19 @@ function OptionList({ options }) {
   );
 }
 
+// 주관식(Q4) 응답이 아직 없을 때. 빈칸 문장을 화면 한가운데에 크게 띄운다.
+// 질문 옆 작은 보조 문구로 두었을 때는 20m 거리에서 읽히지 않았다(사용자 피드백).
+// 단어가 하나라도 들어오면 이 자리를 워드클라우드가 대신한다.
+function TextPrompt() {
+  return (
+    <div className="flex flex-1 items-center justify-center" style={{ marginTop: layout.screenChartTop }}>
+      <p className="balance text-center text-screenPrompt text-ink">
+        <Ko>{`“${TEXT_CAPTION}”`}</Ko>
+      </p>
+    </div>
+  );
+}
+
 // 척도 질문(Q1) 결과 공개 전. 선택지가 아니라 서잌 끝의 설명 2개뿐이라 안 채운 트랙만 보여준다.
 function ScaleHint({ options }) {
   const minLabel = options[0]?.label ?? '';
@@ -539,13 +552,8 @@ export function ScreenView({
                 >
                   <Ko>{question?.title ?? ''}</Ko>
                 </h1>
-                {isText && !(resultsVisible && items.length > 0) ? (
-                  <p className="balance mt-sm text-screenMeta text-ink">
-                    {/* Ko 의 children 을 문자열+표현식+문자열로 나누면 배열로 들어가 String(array) 가
-                        쉼표로 이어붙인다(실측: “,내가...,” 으로 깨졌다). 하나의 문자열로 합쳐서 넘겨야 한다. */}
-                    <Ko>{`“${TEXT_CAPTION}”`}</Ko>
-                  </p>
-                ) : null}
+                {/* 빈칸 문장은 질문 옆 작은 글씨가 아니라 화면 한가운데에 크게 띄운다(아래 TextPrompt).
+                    여기 두었을 때는 20m 거리에서 읽히지 않았다(사용자 피드백). */}
               </div>
               <span className="live-dot mt-md h-md w-md shrink-0 rounded-full bg-green" aria-label="실시간" />
             </div>
@@ -566,6 +574,8 @@ export function ScreenView({
                   {liveCount}명 참여{isScale ? `, 평균 ${matched?.average ?? 0}점` : ''}
                 </p>
               </>
+            ) : isText ? (
+              <TextPrompt />
             ) : isScale ? (
               <ScaleHint options={scaleOptions} />
             ) : choiceOptions.length > 0 ? (

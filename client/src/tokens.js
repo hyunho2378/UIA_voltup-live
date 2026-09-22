@@ -69,6 +69,9 @@ export const typography = {
   // 1행(한글)은 살짝, 2행(영문 대문자)은 더 넓게. 두 줄이 같은 크기와 색이되 자간으로만 위계를 나눈다.
   screenEyebrow: { size: 'clamp(20px, 1.6vw, 30px)', weight: 600, leading: 1.4, tracking: '0.02em' },
   screenEyebrowWide: { size: 'clamp(20px, 1.6vw, 30px)', weight: 600, leading: 1.4, tracking: '0.05em' },
+  // 주관식(Q4) 빈칸 문장. 응답이 아직 없을 때 화면 한가운데에 크게 띄운다.
+  // 질문 옆 작은 보조 문구로는 20m 거리에서 읽히지 않았다(사용자 피드백).
+  screenPrompt: { size: 'clamp(30px, 4.6vw, 92px)', weight: 700, leading: 1.25, tracking: '-0.02em' },
   // 클로징(사진 촬영용) 화면. 20m 뒤에서도 읽히고 사진에 담겨야 해서 커버보다 크게 간다.
   closingEyebrow: { size: 'clamp(18px, 1.9vw, 38px)', weight: 600, leading: 1.3, tracking: '0.02em' },
   closingTitle: { size: 'clamp(32px, 5vw, 96px)', weight: 700, leading: 1.15, tracking: '-0.02em' },
@@ -164,6 +167,9 @@ export const layout = {
   coverGraphicMaxSm: 'min(58%, 280px)',
   coverGraphicMaxHSm: '26vh',
 
+  // 주관식(Q4) 빈칸 문장. 응답이 아직 없을 때 화면 한가운데에 크게 띄운다.
+  // 질문 옆 작은 보조 문구로는 20m 거리에서 읽히지 않았다(사용자 피드백).
+  screenPrompt: { size: 'clamp(30px, 4.6vw, 92px)', weight: 700, leading: 1.25, tracking: '-0.02em' },
   // 클로징(사진 촬영용) 화면. 로고 2개는 하단, 그래픽은 우측.
   // 포럼 타이틀과 세션 타이틀 사이. 커버는 이 자리에 MODULE 05 / 인터렉티브 세션 두 줄이 들어가
   // 자연히 160px 가까이 벌어진다. 클로징은 그 두 줄이 없어 직접 같은 만큼 띄운다(사용자 요청).

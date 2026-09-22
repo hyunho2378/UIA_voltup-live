@@ -31,6 +31,13 @@ export async function applySessionAction(admin, action, questionId) {
   const patch = patchFor(action, questionId);
   if (!patch) return { status: 400, body: { error: 'unknown_action' } };
 
+  // 주관식(워드클라우드) 질문은 결과를 처음부터 공개한다. 단어가 하나씩 쌓이는 과정 자체가 볼거리라
+  // "결과 공개"를 따로 누를 이유가 없다(사용자 요청). 객관식·척도는 기존대로 공개 전까지 감춘다.
+  if (action === 'set_question' && questionId) {
+    const { data: q } = await admin.from('questions').select('type').eq('id', questionId).maybeSingle();
+    if (q?.type === 'text') patch.results_visible = true;
+  }
+
   let { data, error } = await admin.from('sessions').update(patch).eq('id', SESSION_ID).select().single();
 
   // 0007(results_view) 미적용 DB 배포 가드. 코드가 마이그레이션보다 먼저 올라가도
