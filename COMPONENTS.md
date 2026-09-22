@@ -33,6 +33,13 @@
   `/vote`·`/offline`·404 에는 DOM 에 존재하지 않는다(pathname 판정). F 키 전체화면 토글도 이 컴포넌트가 들고 있다.
   전체화면 중에는 스스로 숨는다. 아이콘 금지 규칙에 따라 라벨은 전부 텍스트다.
 
+## 아카이브 (routes/Archive.jsx)
+- **`Archive`** 결과 아카이브 페이지. 질문 목록을 받아 질문마다 집계·참여 수를 조회하고 카드로 나열한다.
+- **`ArchiveCard`** 카드 한 장(같은 파일). 1920x1080 `ScreenView` 를 `ResizeObserver` 로 잰 카드 폭에 맞춰 축소 표시하고,
+  "이미지로 저장" 을 누르면 `html-to-image` 로 원래 크기(pixelRatio 2 → 3840x2160)로 캡처해 `질문N-결과.png` 로 내려받는다.
+  캡처 직전 `transform: none` 으로 축소를 잠시 끈다.
+- 글래스는 CSS 폴백 고정(`GlassModeProvider value="css"`). 카드마다 WebGL 컨텍스트를 만들면 브라우저 한도를 넘는다(/preview 와 같은 이유).
+
 ## 어드민 (components/admin)
 - **`QuestionList.jsx`** — 질문 목록, 현재 질문 표시, 클릭으로 이동.
 - **`SessionControls.jsx`** — 투표 열기/닫기, 결과 공개/숨김, 다음/이전.
