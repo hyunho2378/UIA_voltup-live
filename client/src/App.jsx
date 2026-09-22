@@ -4,6 +4,7 @@ import { adminCheck } from './lib/admin.js';
 import { SessionProvider } from './lib/session-context.jsx';
 import Vote from './routes/Vote.jsx';
 import Screen from './routes/Screen.jsx';
+import Archive from './routes/Archive.jsx';
 import AdminLogin from './routes/AdminLogin.jsx';
 import Admin from './routes/Admin.jsx';
 import Offline from './routes/Offline.jsx';
@@ -51,6 +52,9 @@ export default function App() {
         <Route path="/" element={<Vote />} />
         <Route path="/vote" element={<Vote />} />
         <Route path="/screen" element={<Screen />} />
+        {/* 결과 아카이브. 행사 뒤 질문별 최종 결과를 보고 이미지로 내려받는다. 운영 화면과 분리돼 있어
+            여기서 무엇을 눌러도 청중·대형화면에 영향이 없다. */}
+        <Route path="/archive" element={<Archive />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route
           path="/admin"

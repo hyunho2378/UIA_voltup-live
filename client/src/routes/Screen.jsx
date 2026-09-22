@@ -158,19 +158,24 @@ function WgjPlate({ url, size }) {
 //   3. UIA 로고는 위가 아니라 하단으로 내려가 한양대 로고와 나란히 선다.
 function ClosingPlate() {
   return (
-    <div className="flex min-h-dvh flex-col bg-paper p-lg lg:p-4xl">
+    // h-dvh 다(min-h-dvh 아님). 최소 높이만 주면 안쪽 flex 체인의 높이가 확정되지 않아
+    // 타이틀 이미지가 줄어들 여지를 못 얻고, 세로가 짧은 창에서 하단 로고가 화면 밖으로 밀린다.
+    <div className="flex h-dvh flex-col bg-paper p-lg lg:p-4xl">
       {/* 커버는 GlassRoot(p-4xl) + Glass 패널(p-4xl) 두 겹이라 내용이 96px 에서 시작한다.
           클로징은 패널이 없어 한 겹뿐이었다. 가로만 한 겹 더 줘서 시작 x 를 커버와 맞춘다.
           세로까지 겹쳐 주면 하단 로고 줄까지 더해져 화면을 넘긴다(실측 66px 초과). */}
-      <div className="plate-in flex flex-1 flex-col lg:px-4xl">
+      <div className="plate-in flex min-h-0 flex-1 flex-col lg:px-4xl">
         <div className="flex min-h-0 flex-1 flex-col items-center gap-2xl overflow-y-auto lg:flex-row lg:items-center lg:gap-4xl lg:overflow-visible">
           <div className="flex w-full min-w-0 flex-col justify-center lg:flex-1">
             {/* 커버에서 UIA 로고가 있던 자리. */}
             <p className="text-closingEyebrow text-ink">제3회 대한민국 사회적 가치 페스타</p>
+            {/* min-h-0 이 있어야 세로가 짧은 창에서 이 이미지가 줄어든다. 없으면 고정 높이(1920 기준 307px)를
+                그대로 차지해 하단 로고까지 밀려 화면을 넘긴다(실측 1280x600 에서 106px 초과).
+                여유가 있는 1920 에서는 원래 크기 그대로라 표지와 같은 모습이 유지된다. */}
             <img
               src="/images/brand/title.svg"
               alt="2026 UIA x 한양대학교 NEXT IMPACT FORUM"
-              className="mt-4xl w-full object-contain object-left"
+              className="mt-4xl min-h-0 w-full object-contain object-left"
               style={{ maxWidth: layout.coverTitleMax }}
             />
             <h1 className="balance text-closingTitle text-ink" style={{ marginTop: layout.closingTitleGap }}>

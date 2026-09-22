@@ -289,14 +289,20 @@ export function VoteView({
         )}
       </Glass>
 
-      <GlassButton
-        prominent
-        disabled={!ready}
-        onClick={onSubmit}
-        className={`w-full max-w-vote ${state === 'voting' ? '' : 'invisible pointer-events-none'}`}
-      >
-        투표하기
-      </GlassButton>
+      {/* 하단 고정(PATTERNS.md 규약). 질문이 길고 선택지가 6개면 375x667 같은 폰에서 버튼이 화면 밖으로
+          밀려 스크롤해야 보였다(실측 151px). 내용이 짧으면 sticky 는 아무 영향이 없다.
+          sticky 를 버튼에 직접 걸지 않는 이유: .glass 가 position: relative 를 강제해 유틸리티가 덮인다.
+          zIndex.sticky 는 DESIGN z 위계표에 "하단 고정 투표 버튼" 용도로 이미 잡혀 있다. */}
+      <div className="sticky bottom-lg z-sticky w-full max-w-vote">
+        <GlassButton
+          prominent
+          disabled={!ready}
+          onClick={onSubmit}
+          className={`w-full ${state === 'voting' ? '' : 'invisible pointer-events-none'}`}
+        >
+          투표하기
+        </GlassButton>
+      </div>
 
       {stale ? <StaleModal onReload={() => window.location.reload()} /> : null}
     </GlassRoot>

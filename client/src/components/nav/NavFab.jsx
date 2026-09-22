@@ -6,7 +6,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 // DESIGN.md 265행이 아이콘을 전면 금지하므로(lucide 포함) 라벨은 전부 텍스트다.
 // "/" 가 빠져 있다. 루트는 이제 청중 투표 화면이라(App.jsx 주석 참고) 메뉴가 뜨면 안 된다.
 // 청중이 메뉴를 눌러 화면을 옮기는 사고를 막는다.
-const NAV_PATHS = ['/screen', '/admin', '/admin/login'];
+const NAV_PATHS = ['/screen', '/admin', '/admin/login', '/archive'];
 
 const isScreenPath = (p) => p === '/screen';
 const isAdminPath = (p) => p === '/admin' || p === '/admin/login';
@@ -15,6 +15,7 @@ const ITEMS = [
   { label: '대형화면', to: '/screen', match: isScreenPath },
   { label: '관리자', to: '/admin', match: isAdminPath },
   { label: '투표 화면', to: '/vote', match: (p) => p === '/vote' || p === '/' },
+  { label: '결과 아카이브', to: '/archive', match: (p) => p === '/archive' },
 ];
 
 // 입력 중에는 단축키를 먹지 않는다. 어드민 패스코드 입력과 주관식 입력이 F 를 못 치면 안 된다.
