@@ -44,9 +44,11 @@ export default function App() {
       {/* Routes 와 형제 레벨. 라우트가 바뀜어도 재마운트되지 않고, 어느 경로에서 띄울지는 NavFab 이 직접 정한다. */}
       <NavFab />
       <Routes>
-        {/* 청중은 QR 로만 들어온다. 루트로 직접 오는 건 운영자뿐이라 "/" 를 대형화면으로 둔다.
-            리다이렉트를 쓰지 않는다. 주소창이 바뀜지 않아야 하고, 재마운트로 realtime 소켓이 다시 붙는 과정을 만들지 않기 위해서다. */}
-        <Route path="/" element={<Screen />} />
+        {/* "/" 는 투표 화면이다(2026-09-22 변경). 예전에는 대형화면이었는데, 현장에서 청중이 도메인으로
+            직접 들어오는 경우가 많아 대형화면을 보게 됐고, 투표하려면 우하단 "메뉴"를 눌러 이동해야 했다.
+            기본값을 청중 쪽으로 돌린다. 운영자는 /screen 으로 직접 들어가거나 관리자 메뉴에서 이동한다.
+            리다이렉트를 쓰지 않는다. 주소창이 바뀌지 않아야 하고, 재마운트로 realtime 소켓이 다시 붙는 과정을 만들지 않기 위해서다. */}
+        <Route path="/" element={<Vote />} />
         <Route path="/vote" element={<Vote />} />
         <Route path="/screen" element={<Screen />} />
         <Route path="/admin/login" element={<AdminLogin />} />

@@ -485,11 +485,11 @@ export function ScreenView({
   const matched = visibleResults(question, results);
   const items = matched?.items ?? [];
   const totalVotes = items.reduce((sum, it) => sum + (it.count ?? 0), 0);
-  // 강조는 "단독 1등"일 때만 한다. 동점이면 전부 비1등 색으로 두어 1등이 없다는 사실을 색으로 드러낸다.
-  // 0표(전부 0)도 같은 취급이라 blue 는 0개다.
+  // 1위는 공동이어도 전부 blue 로 강조한다(사용자 요청). 예전에는 "단독 1등"일 때만 칠했는데,
+  // 공동 1위가 나오면 아무것도 강조되지 않아 화면에서 1위를 읽을 수 없었다.
+  // 0표(전부 0)일 때만 강조가 없다. 이때는 1위라는 개념 자체가 없다.
   const top = Math.max(0, ...items.map((it) => it.count ?? 0));
-  const leaders = items.filter((it) => (it.count ?? 0) === top).length;
-  const highlight = top > 0 && leaders === 1 ? top : null;
+  const highlight = top > 0 ? top : null;
   const isText = question?.type === 'text';
   const isScale = question?.type === 'scale';
   // 결과 공개 전에 보여줄 선택지. 집계가 아니라 질문 자체의 선택지라 question 에서 가져온다.

@@ -4,16 +4,17 @@ import { useLocation, useNavigate } from 'react-router-dom';
 // 운영자 전용 이동 도구. 청중 화면에는 뜨지 않는다.
 // 표지를 띄운 채 관리자로 넘어가거나, 관리자에서 대형화면으로 돌아올 때 쓴다.
 // DESIGN.md 265행이 아이콘을 전면 금지하므로(lucide 포함) 라벨은 전부 텍스트다.
-const NAV_PATHS = ['/', '/screen', '/admin', '/admin/login'];
+// "/" 가 빠져 있다. 루트는 이제 청중 투표 화면이라(App.jsx 주석 참고) 메뉴가 뜨면 안 된다.
+// 청중이 메뉴를 눌러 화면을 옮기는 사고를 막는다.
+const NAV_PATHS = ['/screen', '/admin', '/admin/login'];
 
-// "/" 와 "/screen" 은 같은 화면이다(SCREEN_AS_ROOT). 현재 위치 표시를 하나로 묶는다.
-const isScreenPath = (p) => p === '/' || p === '/screen';
+const isScreenPath = (p) => p === '/screen';
 const isAdminPath = (p) => p === '/admin' || p === '/admin/login';
 
 const ITEMS = [
-  { label: '대형화면', to: '/', match: isScreenPath },
+  { label: '대형화면', to: '/screen', match: isScreenPath },
   { label: '관리자', to: '/admin', match: isAdminPath },
-  { label: '투표 화면', to: '/vote', match: (p) => p === '/vote' },
+  { label: '투표 화면', to: '/vote', match: (p) => p === '/vote' || p === '/' },
 ];
 
 // 입력 중에는 단축키를 먹지 않는다. 어드민 패스코드 입력과 주관식 입력이 F 를 못 치면 안 된다.
