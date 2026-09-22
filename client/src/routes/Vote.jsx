@@ -144,19 +144,19 @@ function Slider({ value, onChange, minLabel, maxLabel }) {
   );
 }
 
-// 화면이 오래됐을 때 띄우는 바텀시트. PATTERNS.md 규약대로 청중 모달은 중앙 다이얼로그가 아니라
-// 바텀시트다(엄지로 닿는 위치). 새로고침 버튼을 눌러 바로 복구할 수 있게 한다.
-function StaleSheet({ onReload }) {
+// 오래된 화면에서 투표했을 때 띄우는 중앙 모달. 사용자 지정으로 바텀시트에서 중앙 모달로 바꿨다.
+// 문구는 명사형으로 짧게 두고, 할 일(새로고침)을 버튼 하나로 끝낸다.
+function StaleModal({ onReload }) {
   return (
     <>
-      <div className="sheet-scrim" aria-hidden="true" />
-      <div className="sheet w-full max-w-vote px-lg pb-2xl" role="dialog" aria-modal="true" aria-labelledby="stale-title">
-        <div className="sheet-card rounded-xl p-panel">
-          <p id="stale-title" className="balance text-question text-ink">
-            <Ko>화면이 오래됐어요</Ko>
+      <div className="modal-scrim" aria-hidden="true" />
+      <div className="modal-wrap" role="dialog" aria-modal="true" aria-labelledby="stale-title">
+        <div className="modal-card w-full max-w-vote rounded-xl p-panel">
+          <p id="stale-title" className="text-question text-ink">
+            새로고침 필요
           </p>
           <p className="mt-sub text-option text-ink">
-            <Ko>새로고침하면 지금 질문으로 바로 넘어가요. 투표는 아직 저장되지 않았어요.</Ko>
+            <Ko>화면이 오래돼 투표가 저장되지 않음. 새로고침 뒤 다시 선택.</Ko>
           </p>
           <GlassButton prominent onClick={onReload} className="mt-panel w-full">
             새로고침
@@ -298,7 +298,7 @@ export function VoteView({
         투표하기
       </GlassButton>
 
-      {stale ? <StaleSheet onReload={() => window.location.reload()} /> : null}
+      {stale ? <StaleModal onReload={() => window.location.reload()} /> : null}
     </GlassRoot>
   );
 }
