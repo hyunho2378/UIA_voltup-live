@@ -149,33 +149,40 @@ function WgjPlate({ url, size }) {
 // 이 앱에서 유일하게 ambient 색면·글래스를 쓰지 않는 화면이다. 사진에 담길 배경이라
 // 그라데이션이 있으면 인물과 섞이고 인쇄·재촬영 때도 지저분해진다. paper 단색으로 깔고,
 // 브랜드 자산도 brandRamp 재도색본이 아니라 행사 원본 유채색을 그대로 쓴다(사용자 요청).
-// 위에서 아래로: 행사명 → 타이틀 → (우측 그래픽) → 하단 로고 2개.
+//
+// 배치는 커버(CoverPlate)와 같은 뼈대다. 크기 토큰도 커버 것을 그대로 쓴다(사용자 요청:
+// "표지랑 똑같은 위치에"). 커버와 달라지는 건 세 가지뿐이다.
+//   1. 커버의 UIA 로고 자리에 행사명(제3회 대한민국 사회적 가치 페스타)이 들어간다.
+//   2. MODULE 05 / 인터렉티브 세션 두 줄이 빠지고, 그 자리 아래에 세션 타이틀이 온다.
+//      포럼 타이틀과 붙어 보이지 않게 간격을 5xl(64px)로 크게 벌린다.
+//   3. UIA 로고는 위가 아니라 하단으로 내려가 한양대 로고와 나란히 선다.
 function ClosingPlate() {
   return (
     <div className="flex min-h-dvh flex-col bg-paper p-lg lg:p-4xl">
-      <div className="plate-in flex flex-1 flex-col">
-        <div className="flex min-h-0 flex-1 flex-col items-start gap-2xl lg:flex-row lg:items-center lg:gap-4xl">
+      {/* 커버는 GlassRoot(p-4xl) + Glass 패널(p-4xl) 두 겹이라 내용이 96px 에서 시작한다.
+          클로징은 패널이 없어 한 겹뿐이었다. 가로만 한 겹 더 줘서 시작 x 를 커버와 맞춘다.
+          세로까지 겹쳐 주면 하단 로고 줄까지 더해져 화면을 넘긴다(실측 66px 초과). */}
+      <div className="plate-in flex flex-1 flex-col lg:px-4xl">
+        <div className="flex min-h-0 flex-1 flex-col items-center gap-2xl overflow-y-auto lg:flex-row lg:items-center lg:gap-4xl lg:overflow-visible">
           <div className="flex w-full min-w-0 flex-col justify-center lg:flex-1">
-            {/* 위에서 아래로 행사명 → 포럼 타이틀 → 세션 타이틀 순. 포럼 타이틀(2026 UIA x 한양대학교
-                NEXT IMPACT FORUM)은 커버와 같은 자산을 그대로 쓴다. 없앤 건 MODULE 05 / INTERACTIVE
-                SESSION 두 줄뿐이다. */}
+            {/* 커버에서 UIA 로고가 있던 자리. */}
             <p className="text-closingEyebrow text-ink">제3회 대한민국 사회적 가치 페스타</p>
             <img
               src="/images/brand/title.svg"
               alt="2026 UIA x 한양대학교 NEXT IMPACT FORUM"
-              className="mt-xl w-full object-contain object-left"
-              style={{ maxWidth: layout.closingTitleMax }}
+              className="mt-4xl w-full object-contain object-left"
+              style={{ maxWidth: layout.coverTitleMax }}
             />
-            <h1 className="balance mt-xl text-closingTitle text-ink">
+            <h1 className="balance text-closingTitle text-ink" style={{ marginTop: layout.closingTitleGap }}>
               <Ko>대학의 미래, 미래의 대학</Ko>
             </h1>
           </div>
-          {/* 장식이라 alt 를 비운다. 세로로 긴 그림이라 lg 미만에서는 아래로 쌓고 작게 둔다. */}
+          {/* 커버와 같은 크기 토큰을 쓴다. 따로 작게 두었더니 화면에서 너무 작았다(사용자 피드백). */}
           <img
             src="/images/brand/graphic-color.webp"
             alt=""
             aria-hidden="true"
-            className="min-h-0 max-w-closingGraphicSm max-h-closingGraphicSm shrink-0 self-center object-contain lg:max-w-closingGraphic lg:max-h-closingGraphic"
+            className="min-h-0 max-w-coverGraphicSm max-h-coverGraphicSm shrink-0 self-center object-contain lg:max-w-coverGraphic lg:max-h-coverGraphic"
           />
         </div>
         {/* 하단 로고 2개. 주최·주관 표기라 한 줄에 나란히 둔다. */}

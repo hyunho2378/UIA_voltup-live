@@ -160,16 +160,30 @@ QR 플레이트와 같은 근거로 오브젝트 취급이라 가운데/우측 �
 **브랜드 자산도 여기서만 원본 유채색을 쓴다.** 다른 화면은 `brandRamp` 로 단일 톤을 맞추지만,
 클로징은 행사 아이덴티티를 그대로 남긴다.
 
+**배치는 커버와 같은 뼈대를 쓴다.** 크기 토큰도 커버 것을 그대로 재사용한다(`coverTitleMax`,
+`coverGraphic*`). 커버와 달라지는 건 셋뿐이다.
+
+| 커버 | 클로징 |
+|---|---|
+| 최상단 UIA 로고 | 행사명 "제3회 대한민국 사회적 가치 페스타"(`closingEyebrow`) |
+| `MODULE 05` + `인터렉티브 세션` 두 줄 | 없음. 대신 그 자리만큼 간격(`closingTitleGap`)을 두고 세션 타이틀 |
+| 로고가 위 | UIA 로고가 하단으로 내려가 한양대 로고와 나란히 |
+
 | 구성 | 자산 / 값 | 크기 토큰 |
 |---|---|---|
 | 행사명(최상단) | "제3회 대한민국 사회적 가치 페스타" | `closingEyebrow` |
-| 포럼 타이틀 | `/images/brand/title.svg`(커버와 같은 자산) | `closingTitleMax` |
-| 세션 타이틀 | "대학의 미래, 미래의 대학" | `closingTitle` |
-| 그래픽(우측) | `/images/brand/graphic-color.webp`(유채색 원본) | `closingGraphicMax/MaxH`, lg 미만 `...Sm` |
+| 포럼 타이틀 | `/images/brand/title.svg`(커버와 같은 자산) | `coverTitleMax`(커버와 동일) |
+| 세션 타이틀 | "대학의 미래, 미래의 대학" | `closingTitle`, 위 간격 `closingTitleGap` |
+| 그래픽(우측) | `/images/brand/graphic-color.webp`(유채색 원본) | `coverGraphic*`(커버와 동일) |
 | 하단 로고 | `/images/brand/logo-color.svg`(UIA 유채색) + `/images/brand/hyu-logotype.svg` | `closingUiaLogoMax`, `closingHyuLogoMax` |
 
-커버에 있던 `MODULE 05` / `인터렉티브 세션` 두 줄은 이 화면에 없다. 나머지 구성은 위에서 아래로
-행사명 → 포럼 타이틀 → 세션 타이틀 순이고, 가운데 빈 공간이 사람이 서는 자리가 된다.
+`closingTitleGap` 은 커버에서 두 줄이 만들던 간격(1920x1080 실측 159px)을 그대로 재현하는 값이다.
+좌측 시작 x 도 커버와 맞춘다. 커버는 GlassRoot + Glass 패널 두 겹 패딩이라 96px 에서 시작하는데,
+클로징은 패널이 없어 안쪽에 가로 패딩을 한 겹 더 준다(세로까지 겹치면 하단 로고 줄 때문에 화면을 넘긴다).
+가운데 빈 공간이 사람이 서는 자리가 된다.
+
+실측(1920x1080): 타이틀 x/크기, 그래픽 x/크기 모두 커버와 동일. 타이틀→세션 타이틀 간격 162px(커버 159px).
+가로·세로 넘침 0. 390x844 도 넘침 0.
 
 ### 워드클라우드 (주관식 전용 결과 뷰)
 

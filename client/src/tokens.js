@@ -165,13 +165,11 @@ export const layout = {
   coverGraphicMaxHSm: '26vh',
 
   // 클로징(사진 촬영용) 화면. 로고 2개는 하단, 그래픽은 우측.
-  closingTitleMax: 'min(38vw, 560px)',
+  // 포럼 타이틀과 세션 타이틀 사이. 커버는 이 자리에 MODULE 05 / 인터렉티브 세션 두 줄이 들어가
+  // 자연히 160px 가까이 벌어진다. 클로징은 그 두 줄이 없어 직접 같은 만큼 띄운다(사용자 요청).
+  closingTitleGap: 'clamp(40px, 15vh, 165px)',
   closingUiaLogoMax: 'clamp(90px, 11vw, 220px)',
   closingHyuLogoMax: 'clamp(130px, 16vw, 320px)',
-  closingGraphicMax: 'min(26%, 360px)',
-  closingGraphicMaxH: '52vh',
-  closingGraphicMaxSm: 'min(52%, 240px)',
-  closingGraphicMaxHSm: '22vh',
 
   qrRatio: 0.38, // 화면 짧은 변 대비 QR 크기
   // 클로징(홍보) 화면. 로고가 주인공이고 QR 은 보조라 대기 화면 QR 보다 작게 둔다.
